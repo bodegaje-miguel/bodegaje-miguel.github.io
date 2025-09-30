@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Inventario – Google Sheets (robusto)</title>
+  <link href="https://cdn.jsdelivr.net/npm/tabulator-tables@6.2.5/dist/css/tabulator.min.css" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/tabulator-tables@6.2.5/dist/js/tabulator.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <style>
+    :root{ --bg:#0b1220; --card:#121a2b; --soft:#1b2741; --text:#e9eefb; --muted:#a9b6d3; }
+    body{ margin:0; font-family:system-ui,Segoe UI,Roboto; background:var(--bg); color:var(--text); }
+    .wrap{ max-width:1200px; margin:24px auto; padding:0 16px; }
+    .card{ background:var(--card); border:1px solid var(--soft); border-radius:16px; padding:16px; box-shadow:0 10px 24px rgba(0,0,0,.25); }
+    .toolbar{ display:flex; flex-wrap:wrap; gap:12px; align-items:center; margin-bottom:12px; }
+    .toolbar .field{ display:flex; gap:8px; align-items:center; background:var(--soft); border-radius:12px; padding:8px 10px; }
+    .toolbar input, .toolbar select{ background:transparent; border:none; outline:none; color:var(--text); font-size:14px; min-width:160px; }
+    .btn{ background:#2a7ef0; color:white; border:none; border-radius:12px; padding:10px 14px; cursor:pointer; font-weight:600; }
+    .status{ font-size:12px; color:#c3cfe7; white-space:pre-wrap }
+    #table{ border-radius:12px; overflow:hidden; height:600px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <h1 style="margin:0 0 8px 0; font-size:20px;">Inventario desde Google Sheets</h1>
+      <div class="hint">Prueba 2 rutas: publicación pública (2PACX → csv) y gviz (docId+gid).</div>
+
+      <div class="toolbar" role="group">
+        <div class="field"><input id="q" placeholder="Buscar…" /></div>
+        <div class="field">
+          <span>Agrupar:</span>
+          <select id="groupBy">
+            <option value="none">Sin agrupación</option>
+            <option value="FAMILIA">Familia</option>
+            <option value="MARCA">Marca</option>
+          </select>
+        </div>
+        <button id="reloadBtn" class="btn">Recargar</button>
+      </div>
+
+      <div class="status" id="status">Listo.</div>
+      <div id="table"></div>
+
+      <div class="hint" style="margin-top:10px">
+        Rutas: 
+        <a href="https://docs.google.com/spreadsheets/d/e/2PACX-1vTUkpzEC6aZsl0Ur9f3Jwu3NcuZBq2tzrT_weH8QamLt7qsvJMzUKWkZfc-xNX7Pw/pub?output=csv" target="_blank" rel="noopener">CSV publicado</a> · 
+       <a href="https://docs.google.com/spreadsheets/d/1UCJUvGvb2tXTv_zsx0SKFwNdDj_uVR2Hf/gviz/tq?tqx=out:csv&gid=1315400324" target="_blank" rel="noopener">CSV gviz (docId+gid)</a>
+      </div>
+    </div>
+  </div>
+
+<script>
+const CANDIDATES = [
+  "https://docs.google.com/spreadsheets/d/e/2PACX-1vTUkpzEC6aZsl0Ur9f3Jwu3NcuZBq2tzrT_weH8QamLt7qsvJMzUKWkZfc-xNX7Pw/pub?output=csv",
+  "https://docs.google.com/spreadsheets/d/1UCJUvGvb2tXTv_zsx0SKFwNdDj_uVR2Hf/gviz/tq?tqx=out:csv&gid=1315400324"
+];
+
+function driveShareToDirect(url){ if(!url) return ""; const m=url.match(/\/file\/d\/([^/]+)\//); return m?`https://drive.google.com/uc?export=view&id=${m[1]}`:url; }
+function pick(row, aliases){ for(const a of aliases){ for(const k of Object.keys(row)){ if(!k) continue; const kk=k.toString().normalize("NFD").replace(/\p{Diacritic}/gu,"").trim().toUpperCase(); const aa=a.normalize("NFD").replace(/\p{Diacritic}/gu,"").trim().toUpperCase(); if(kk===aa) return row[k]; } } return ""; }
+function fotoFormatter(cell){ const raw=(cell.getValue()||"").toString().trim(); if(!raw) return ""; const safe=driveShareToDirect(raw); return `<img style="width:80px;height:80px;object-fit:cover;border-radius:10px;border:1px solid #273557" src="${safe}" onerror="this.style.display='none'">`; }
+
+let table = new Tabulator("#table", { layout:"fitColumns", placeholder:"Sin datos",
+  columns:[
+    {title:"Código", field:"CODIGO", width:120},
+    {title:"Nombre", field:"NOMBRE", minWidth:160},
+    {title:"Detalle", field:"DETALLE", minWidth:240},
+    {title:"Marca", field:"MARCA", width:140},
+    {title:"Familia", field:"FAMILIA", width:140},
+    {title:"Cantidad", field:"CANTIDAD", hozAlign:"right", width:120},
+    {title:"Foto", field:"FOTO", formatter: fotoFormatter, width:110, hozAlign:"center"},
+  ]
+});
+
+function setStatus(t){ document.getElementById("status").textContent = t; }
+
+async function loadAny(){
+  let errors = [];
+  for(const url of CANDIDATES){
+    try{
+      setStatus("Intentando: " + url);
+      const res = await fetch(url, {cache:"no-store"});
+      if(!res.ok) throw new Error("HTTP " + res.status);
+      const text = await res.text();
+      const wb = XLSX.read(text, {type:"string"});
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const raw = XLSX.utils.sheet_to_json(ws, {defval:""});
+      const rows = raw.map(r => ({ 
+        CODIGO:   pick(r, ["CODIGO","CÓDIGO","CODE","ID","SKU"]).toString(),
+        NOMBRE:   pick(r, ["NOMBRE","NAME","PRODUCTO","ITEM"]).toString(),
+        DETALLE:  pick(r, ["DETALLE","DESCRIPCION","DESCRIPCIÓN","DETAIL","DESCRIPTION"]).toString(),
+        MARCA:    pick(r, ["MARCA","BRAND"]).toString(),
+        FAMILIA:  pick(r, ["FAMILIA","FAMILY","CATEGORIA","CATEGORÍA"]).toString(),
+        CANTIDAD: Number(pick(r, ["CANTIDAD","CANT.","QTY","QUANTITY"])) || 0,
+        FOTO:     pick(r, ["FOTO","IMAGEN","IMAGE","URL_FOTO","URL IMAGEN"]).toString(),
+      }));
+      table.replaceData(rows);
+      setStatus("Carga correcta desde: " + url);
+      return;
+    }catch(e){
+      errors.push(url + " → " + e.message);
+    }
+  }
+  setStatus("Fallo todas las rutas:\n" + errors.join("\n") + "\nRevisa: 1) que el enlace abra en incógnito, 2) que Compartir esté como 'Cualquiera con el enlace (lector)'.");
+}
+
+function applySearch(q){ const v=(q||"").trim().toLowerCase(); if(!v){ table.clearFilter(true); return; }
+  table.setFilter([[
+    {field:"CODIGO", type:"like", value:v},
+    {field:"NOMBRE", type:"like", value:v},
+    {field:"DETALLE", type:"like", value:v},
+  ]]); }
+
+function applyGrouping(mode){ if(mode==="FAMILIA") table.setGroupBy("FAMILIA"); else if(mode==="MARCA") table.setGroupBy("MARCA"); else table.setGroupBy(); }
+
+document.getElementById("q").addEventListener("input", e=>applySearch(e.target.value));
+document.getElementById("groupBy").addEventListener("change", e=>applyGrouping(e.target.value));
+document.getElementById("reloadBtn").addEventListener("click", loadAny);
+loadAny();
+</script>
+</body>
+</html>
