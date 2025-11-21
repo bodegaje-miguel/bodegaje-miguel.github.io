@@ -127,9 +127,9 @@
   </div>
 
 <script>
-// URL RAW del archivo Excel en OneDrive
+// URL RAW del archivo Excel en OneDrive (NUEVO ENLACE)
 const XLSX_URL =
-  "https://onedrive.live.com/download?resid=31739D16458EAC44!110&authkey=!ERyMsV4zXjpGkyhI";
+  "https://onedrive.live.com/download?resid=31739D16458EAC44!124&authkey=!EW2HyrgjXpJPl2C1";
 
 // Popup verde
 function showPopup(){
@@ -224,8 +224,11 @@ loadFromOneDrive();
 
 // Buscador
 document.getElementById("q").addEventListener("input", e=>{
-  const v = (e.target.value||"").trim().toLowerCase();
-  if(!v){ table.clearFilter(true); return; }
+  const v = (e.target.value||"").toLowerCase();
+  if(!v){
+    table.clearFilter(true);
+    return;
+  }
   table.setFilter([
     {field:"CODIGO", type:"like", value:v},
     {field:"NOMBRE", type:"like", value:v},
