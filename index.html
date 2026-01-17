@@ -1,4 +1,4 @@
-  <!doctype html>
+<!doctype html>
 <html lang="es">
 <head>
 <meta charset="utf-8" />
@@ -72,7 +72,9 @@ mark{
 <body>
 <div class="wrap">
   <div class="card">
-    <h1 style="margin:0 0 8px 0;font-size:20px">Inventario desde Google Sheets</h1>
+    <h1 style="margin:0 0 8px 0;font-size:20px">
+      Inventario desde Google Sheets
+    </h1>
 
     <div class="toolbar">
       <div class="field">
@@ -98,10 +100,9 @@ mark{
 </div>
 
 <script>
-/* ================= FUENTES ================= */
-const CANDIDATES=[
-  "https://docs.google.com/spreadsheets/d/e/2PACX-1vTUkpzEC6aZsl0Ur9f3Jwu3NcuZBq2tzrT_weH8QamLt7qsvJMzUKWkZfc-xNX7Pw/pub?output=csv"
-];
+/* ================= FUENTE ================= */
+const SOURCE =
+  "https://docs.google.com/spreadsheets/d/e/2PACX-1vTUkpzEC6aZsl0Ur9f3Jwu3NcuZBq2tzrT_weH8QamLt7qsvJMzUKWkZfc-xNX7Pw/pub?output=csv";
 
 /* ================= HELPERS ================= */
 function pick(row, aliases){
@@ -145,17 +146,12 @@ let table=new Tabulator("#table",{
   layout:"fitColumns",
   placeholder:"Sin datos",
   columns:[
-    {title:"Código",field:"CODIGO",width:120,
-      formatter:c=>highlight(c.getValue())},
-    {title:"Nombre",field:"NOMBRE",minWidth:160,
-      formatter:c=>highlight(c.getValue())},
-    {title:"Detalle",field:"DETALLE",minWidth:240,
-      formatter:c=>highlight(c.getValue())},
+    {title:"Código",field:"CODIGO",width:120,formatter:c=>highlight(c.getValue())},
+    {title:"Nombre",field:"NOMBRE",minWidth:160,formatter:c=>highlight(c.getValue())},
+    {title:"Detalle",field:"DETALLE",minWidth:240,formatter:c=>highlight(c.getValue())},
     {title:"Cantidad",field:"CANTIDAD",hozAlign:"right",width:120},
-    {title:"Marca",field:"MARCA",width:140,
-      formatter:c=>highlight(c.getValue())},
-    {title:"Familia",field:"FAMILIA",width:140,
-      formatter:c=>highlight(c.getValue())},
+    {title:"Marca",field:"MARCA",width:140,formatter:c=>highlight(c.getValue())},
+    {title:"Familia",field:"FAMILIA",width:140,formatter:c=>highlight(c.getValue())},
     {
       title:"Foto",field:"FOTO",width:110,hozAlign:"center",
       formatter:c=>{
@@ -174,40 +170,35 @@ function highlight(text){
   return String(text||"").replace(re,"<mark>$1</mark>");
 }
 
-/* ================= CARGA ================= */
-async function loadAny(){
-  for(const url of CANDIDATES){
-    try{
-      const res=await fetch(url,{cache:"no-store"});
-      if(!res.ok) throw 0;
-      const text=await res.text();
-      const wb=XLSX.read(text,{type:"string"});
-      const ws=wb.Sheets[wb.SheetNames[0]];
-      const raw=XLSX.utils.sheet_to_json(ws,{defval:""});
-
-      const rows=raw.map(r=>({
-        CODIGO:pick(r,["CODIGO","ID","SKU"]).toString(),
-        NOMBRE:pick(r,["NOMBRE","PRODUCTO","ITEM"]).toString(),
-        DETALLE:pick(r,["DETALLE","DESCRIPCION"]).toString(),
-        MARCA:pick(r,["MARCA"]).toString(),
-        FAMILIA:pick(r,["FAMILIA","CATEGORIA"]).toString(),
-        CANTIDAD:Number(pick(r,["CANTIDAD","QTY"]))||0,
-        FOTO:pick(r,["FOTO","IMAGEN","URL_FOTO"]).toString(),
-        ESTATUS2:pick(r,["ESTATUS2","ESTADO","BLOQUEO"]).toString(),
-      }));
-
-      table.replaceData(rows);
-      table.setFilter(filtroGlobal);
-      updateCounter();
-      return;
-    }catch(e){}
-  }
+/* ================= CONTADOR (CORRECTO) ================= */
+function updateCounter(){
+  const visibles = table.getData("active").length;
+  document.getElementById("counter").textContent =
+    `Visibles: ${visibles}`;
 }
 
-/* ================= CONTADOR ================= */
-function updateCounter(){
-  document.getElementById("counter").textContent=
-    `Visibles: ${table.getRows(true).length}`;
+/* ================= CARGA ================= */
+async function loadData(){
+  const res=await fetch(SOURCE,{cache:"no-store"});
+  const text=await res.text();
+  const wb=XLSX.read(text,{type:"string"});
+  const ws=wb.Sheets[wb.SheetNames[0]];
+  const raw=XLSX.utils.sheet_to_json(ws,{defval:""});
+
+  const rows=raw.map(r=>({
+    CODIGO:pick(r,["CODIGO","ID","SKU"]).toString(),
+    NOMBRE:pick(r,["NOMBRE","PRODUCTO","ITEM"]).toString(),
+    DETALLE:pick(r,["DETALLE","DESCRIPCION"]).toString(),
+    MARCA:pick(r,["MARCA"]).toString(),
+    FAMILIA:pick(r,["FAMILIA","CATEGORIA"]).toString(),
+    CANTIDAD:Number(pick(r,["CANTIDAD","QTY"]))||0,
+    FOTO:pick(r,["FOTO","IMAGEN","URL_FOTO"]).toString(),
+    ESTATUS2:pick(r,["ESTATUS2","ESTADO","BLOQUEO"]).toString(),
+  }));
+
+  table.replaceData(rows);
+  table.setFilter(filtroGlobal);
+  updateCounter();
 }
 
 /* ================= BUSCADOR ================= */
@@ -232,7 +223,7 @@ document.getElementById("exportBtn").onclick=()=>{
   });
 };
 
-loadAny();
+loadData();
 </script>
 </body>
 </html>
