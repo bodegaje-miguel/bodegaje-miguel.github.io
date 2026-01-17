@@ -91,7 +91,7 @@ let table=new Tabulator("#table",{
 
   rowFormatter:function(row){
     const d=row.getData();
-    if((d.LOTE||"").toUpperCase()==="BLOQUEO"){
+    if((d.ESTATUS2||"").toUpperCase()==="BLOQUEO"){
       row.getElement().classList.add("row-bloqueado");
       if(!mostrarBloqueados){
         row.getElement().style.display="none";
@@ -129,8 +129,8 @@ async function loadData(){
   totalDisponibles=0;
 
   const rows=raw.map(r=>{
-    const lote=pick(r,["LOTE","BLOQUEO","ESTADO"]).toString();
-    if(lote.toUpperCase()!=="BLOQUEO") totalDisponibles++;
+    const ESTATUS2=pick(r,["ESTATUS2","BLOQUEO","ESTADO"]).toString();
+    if(ESTATUS2.toUpperCase()!=="BLOQUEO") totalDisponibles++;
 
     return{
       CODIGO:pick(r,["CODIGO","ID","SKU"]),
@@ -140,7 +140,7 @@ async function loadData(){
       FAMILIA:pick(r,["FAMILIA","CATEGORIA"]),
       CANTIDAD:Number(pick(r,["CANTIDAD","QTY"]))||0,
       FOTO:pick(r,["FOTO","IMAGEN","URL_FOTO"]),
-      LOTE:lote
+      ESTATUS2:ESTATUS2
     };
   });
 
