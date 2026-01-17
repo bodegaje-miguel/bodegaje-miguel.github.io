@@ -99,9 +99,7 @@ async function loadAny(){
      const filteredRows = rows.filter(r => {
   const lote = (r.LOTE || "").trim().toUpperCase();
   return lote !== "BLOQUEO";
-})
-    )
-  );
+
 });
       table.replaceData(filteredRows);
       setStatus("Carga correcta desde: " + url);
