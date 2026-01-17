@@ -96,12 +96,12 @@ async function loadAny(){
         FOTO:     pick(r, ["FOTO","IMAGEN","IMAGE","URL_FOTO","URL IMAGEN"]).toString(),
         LOTE:     pick(r, ["LOTE","BLOQUEO","ESTADO"]).toString(),
       }));
-     const filteredRows = rows.filter(r => {
-  const lote = (r.LOTE || "").trim().toUpperCase();
+    
+      table.replaceData(rows);
+       table.setFilter(function(data){
+  const lote = (data.LOTE || "").trim().toUpperCase();
   return lote !== "BLOQUEO";
-
 });
-      table.replaceData(filteredRows);
       setStatus("Carga correcta desde: " + url);
       return;
     }catch(e){
