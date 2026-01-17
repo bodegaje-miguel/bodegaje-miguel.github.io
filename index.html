@@ -67,7 +67,8 @@ let table = new Tabulator("#table", { layout:"fitColumns", placeholder:"Sin dato
     {title:"Detalle", field:"DETALLE", minWidth:240},
     {title:"Cantidad", field:"CANTIDAD", hozAlign:"right", width:120},
     {title:"Marca", field:"MARCA", width:140},
-    {title:"Familia", field:"FAMILIA", width:140},    
+    {title:"Familia", field:"FAMILIA", width:140},
+    {title:"Lote", field:"LOTE", width:120},
     {title:"Foto", field:"FOTO", formatter: fotoFormatter, width:110, hozAlign:"center"},
   ]
 });
@@ -93,8 +94,23 @@ async function loadAny(){
         FAMILIA:  pick(r, ["FAMILIA","FAMILY","CATEGORIA","CATEGORÍA"]).toString(),
         CANTIDAD: Number(pick(r, ["CANTIDAD","CANT.","QTY","QUANTITY"])) || 0,
         FOTO:     pick(r, ["FOTO","IMAGEN","IMAGE","URL_FOTO","URL IMAGEN"]).toString(),
+        LOTE:     pick(r, ["LOTE","BLOQUEO","ESTADO"]).toString(),
       }));
-      table.replaceData(rows);
+      const filteredRows = rows.filter(r => {
+  const lote = (r.LOTE || "").trim().toUpperCase();
+
+  return (
+    lote === "" ||
+    (
+      !lote.includes("BLOQ") &&
+      lote !== "SI" &&
+      lote !== "YES" &&
+      lote !== "TRUE" &&
+      lote !== "X"
+    )
+  );
+});
+      table.replaceData(filteredRows);
       setStatus("Carga correcta desde: " + url);
       return;
     }catch(e){
