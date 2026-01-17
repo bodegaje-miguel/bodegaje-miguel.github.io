@@ -12,6 +12,7 @@
 <style>
 :root{
   --bg:#0b1220; --card:#121a2b; --soft:#1b2741; --text:#e9eefb;
+  --hl:#ffd54f;
 }
 body{margin:0;font-family:system-ui;background:var(--bg);color:var(--text)}
 .wrap{max-width:1300px;margin:24px auto;padding:0 16px}
@@ -25,11 +26,11 @@ body{margin:0;font-family:system-ui;background:var(--bg);color:var(--text)}
 .counter{margin-left:auto;font-weight:600}
 #table{height:620px;border-radius:12px;overflow:hidden}
 
-/* Estilo bloqueados */
-.row-bloqueado{
-  opacity:.35;
-  filter:grayscale(100%);
-}
+/* Bloqueados */
+.row-bloqueado{opacity:.35;filter:grayscale(100%)}
+
+/* Resaltado */
+mark{background:var(--hl);color:black;padding:0 2px;border-radius:3px}
 </style>
 </head>
 
@@ -39,7 +40,7 @@ body{margin:0;font-family:system-ui;background:var(--bg);color:var(--text)}
     <h2>Inventario desde Google Sheets</h2>
 
     <div class="toolbar">
-      <input id="q" placeholder="Buscar…">
+      <input id="q" placeholder="Buscar… (código, nombre, marca, familia)">
       <select id="groupBy">
         <option value="none">Sin agrupación</option>
         <option value="FAMILIA">Familia</option>
@@ -63,6 +64,7 @@ const SOURCE =
 
 let mostrarBloqueados = false;
 let totalDisponibles = 0;
+let searchTerm = "";
 
 /* ================= HELPERS ================= */
 function pick(row, aliases){
@@ -83,6 +85,12 @@ function driveImg(url){
   return m?`https://drive.google.com/uc?export=view&id=${m[1]}`:url;
 }
 
+function highlight(text){
+  if(!searchTerm) return text;
+  const re = new RegExp(`(${searchTerm})`, "gi");
+  return text.replace(re, "<mark>$1</mark>");
+}
+
 /* ================= TABULATOR ================= */
 let table = new Tabulator("#table",{
   layout:"fitColumns",
@@ -101,12 +109,17 @@ let table = new Tabulator("#table",{
   },
 
   columns:[
-    {title:"Código",field:"CODIGO",width:120},
-    {title:"Nombre",field:"NOMBRE",minWidth:180},
-    {title:"Detalle",field:"DETALLE",minWidth:260},
+    {title:"Código",field:"CODIGO",width:120,
+      formatter:cell=>highlight(cell.getValue()||"")},
+    {title:"Nombre",field:"NOMBRE",minWidth:180,
+      formatter:cell=>highlight(cell.getValue()||"")},
+    {title:"Detalle",field:"DETALLE",minWidth:260,
+      formatter:cell=>highlight(cell.getValue()||"")},
     {title:"Cantidad",field:"CANTIDAD",width:100,hozAlign:"right"},
-    {title:"Marca",field:"MARCA",width:140},
-    {title:"Familia",field:"FAMILIA",width:140},
+    {title:"Marca",field:"MARCA",width:140,
+      formatter:cell=>highlight(cell.getValue()||"")},
+    {title:"Familia",field:"FAMILIA",width:140,
+      formatter:cell=>highlight(cell.getValue()||"")},
     {
       title:"Foto",field:"FOTO",width:110,hozAlign:"center",
       formatter:cell=>{
@@ -151,7 +164,36 @@ async function loadData(){
     `Disponibles: ${totalDisponibles}`;
 }
 
-/* ================= EVENTOS ================= */
+/* ================= DEBOUNCE ================= */
+function debounce(fn, delay){
+  let t;
+  return (...args)=>{
+    clearTimeout(t);
+    t=setTimeout(()=>fn(...args),delay);
+  };
+}
+
+/* ================= BÚSQUEDA ================= */
+const doSearch = debounce(value=>{
+  searchTerm = value.toLowerCase();
+
+  table.setFilter(data=>{
+    const hay =
+      data.CODIGO.toLowerCase().includes(searchTerm) ||
+      data.NOMBRE.toLowerCase().includes(searchTerm) ||
+      data.DETALLE.toLowerCase().includes(searchTerm) ||
+      data.MARCA.toLowerCase().includes(searchTerm) ||
+      data.FAMILIA.toLowerCase().includes(searchTerm);
+
+    return hay;
+  });
+
+  table.redraw(true);
+},300);
+
+document.getElementById("q").oninput = e => doSearch(e.target.value);
+
+/* ================= BOTONES ================= */
 document.getElementById("toggleBloq").onclick=()=>{
   mostrarBloqueados=!mostrarBloqueados;
   table.redraw(true);
@@ -164,15 +206,6 @@ document.getElementById("exportBtn").onclick=()=>{
     sheetName:"Disponibles",
     rowRange:"active"
   });
-};
-
-document.getElementById("q").oninput=e=>{
-  const v=e.target.value.toLowerCase();
-  table.setFilter(d =>
-    d.CODIGO.toLowerCase().includes(v) ||
-    d.NOMBRE.toLowerCase().includes(v) ||
-    d.DETALLE.toLowerCase().includes(v)
-  );
 };
 
 document.getElementById("groupBy").onchange=e=>{
