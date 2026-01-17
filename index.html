@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Inventario – Google Sheets</title>
+<title>Inventario – Google Sheets (Coincidencias)</title>
 
 <link href="https://cdn.jsdelivr.net/npm/tabulator-tables@6.2.5/dist/css/tabulator.min.css" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/tabulator-tables@6.2.5/dist/js/tabulator.min.js"></script>
@@ -11,22 +11,20 @@
 
 <style>
 :root{
-  --bg:#0b1220; --card:#121a2b; --soft:#1b2741; --text:#e9eefb;
-  --hl:#ffd54f;
+  --bg:#0b1220; --card:#121a2b; --soft:#1b2741; --text:#e9eefb; --hl:#ffd54f;
 }
 body{margin:0;font-family:system-ui;background:var(--bg);color:var(--text)}
 .wrap{max-width:1300px;margin:24px auto;padding:0 16px}
 .card{background:var(--card);border-radius:16px;padding:16px}
 .toolbar{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:12px}
 .toolbar input,.toolbar select,.btn{
-  background:var(--soft);border:none;color:white;
-  padding:8px 12px;border-radius:10px
+  background:var(--soft);border:none;color:white;padding:8px 12px;border-radius:10px
 }
 .btn{background:#2a7ef0;font-weight:600;cursor:pointer}
 .counter{margin-left:auto;font-weight:600}
 #table{height:620px;border-radius:12px;overflow:hidden}
 
-/* Bloqueados */
+/* Bloqueados (cuando se muestran) */
 .row-bloqueado{opacity:.35;filter:grayscale(100%)}
 
 /* Resaltado */
@@ -40,7 +38,7 @@ mark{background:var(--hl);color:black;padding:0 2px;border-radius:3px}
     <h2>Inventario desde Google Sheets</h2>
 
     <div class="toolbar">
-      <input id="q" placeholder="Buscar… (código, nombre, marca, familia)">
+      <input id="q" placeholder="Buscar… (solo coincidencias)">
       <select id="groupBy">
         <option value="none">Sin agrupación</option>
         <option value="FAMILIA">Familia</option>
@@ -48,9 +46,9 @@ mark{background:var(--hl);color:black;padding:0 2px;border-radius:3px}
       </select>
 
       <button id="toggleBloq" class="btn">Mostrar bloqueados</button>
-      <button id="exportBtn" class="btn">Exportar disponibles</button>
+      <button id="exportBtn" class="btn">Exportar visibles</button>
 
-      <div class="counter" id="counter">Disponibles: 0</div>
+      <div class="counter" id="counter">Visibles: 0</div>
     </div>
 
     <div id="table"></div>
@@ -63,7 +61,6 @@ const SOURCE =
   "https://docs.google.com/spreadsheets/d/e/2PACX-1vTUkpzEC6aZsl0Ur9f3Jwu3NcuZBq2tzrT_weH8QamLt7qsvJMzUKWkZfc-xNX7Pw/pub?output=csv";
 
 let mostrarBloqueados = false;
-let totalDisponibles = 0;
 let searchTerm = "";
 
 /* ================= HELPERS ================= */
@@ -78,29 +75,26 @@ function pick(row, aliases){
   }
   return "";
 }
-
 function driveImg(url){
   if(!url) return "";
   const m=url.match(/\/file\/d\/([^/]+)\//);
   return m?`https://drive.google.com/uc?export=view&id=${m[1]}`:url;
 }
-
 function highlight(text){
   if(!searchTerm) return text;
-  const re = new RegExp(`(${searchTerm})`, "gi");
-  return text.replace(re, "<mark>$1</mark>");
+  const re=new RegExp(`(${searchTerm})`,"gi");
+  return String(text).replace(re,"<mark>$1</mark>");
 }
 
 /* ================= TABULATOR ================= */
-let table = new Tabulator("#table",{
+let table=new Tabulator("#table",{
   layout:"fitColumns",
   placeholder:"Sin datos",
 
   rowFormatter:function(row){
     const d=row.getData();
-    const estatus=(d.ESTATUS2||"").toUpperCase().trim();
-
-    if(estatus==="BLOQUEO"){
+    const est=(d.ESTATUS2||"").toUpperCase().trim();
+    if(est==="BLOQUEO"){
       row.getElement().classList.add("row-bloqueado");
       if(!mostrarBloqueados){
         row.getElement().style.display="none";
@@ -109,25 +103,18 @@ let table = new Tabulator("#table",{
   },
 
   columns:[
-    {title:"Código",field:"CODIGO",width:120,
-      formatter:cell=>highlight(cell.getValue()||"")},
-    {title:"Nombre",field:"NOMBRE",minWidth:180,
-      formatter:cell=>highlight(cell.getValue()||"")},
-    {title:"Detalle",field:"DETALLE",minWidth:260,
-      formatter:cell=>highlight(cell.getValue()||"")},
+    {title:"Código",field:"CODIGO",width:120, formatter:c=>highlight(c.getValue()||"")},
+    {title:"Nombre",field:"NOMBRE",minWidth:180, formatter:c=>highlight(c.getValue()||"")},
+    {title:"Detalle",field:"DETALLE",minWidth:260, formatter:c=>highlight(c.getValue()||"")},
     {title:"Cantidad",field:"CANTIDAD",width:100,hozAlign:"right"},
-    {title:"Marca",field:"MARCA",width:140,
-      formatter:cell=>highlight(cell.getValue()||"")},
-    {title:"Familia",field:"FAMILIA",width:140,
-      formatter:cell=>highlight(cell.getValue()||"")},
+    {title:"Marca",field:"MARCA",width:140, formatter:c=>highlight(c.getValue()||"")},
+    {title:"Familia",field:"FAMILIA",width:140, formatter:c=>highlight(c.getValue()||"")},
     {
       title:"Foto",field:"FOTO",width:110,hozAlign:"center",
-      formatter:cell=>{
-        const src=driveImg(cell.getValue());
-        return src
-          ? `<img loading="lazy" src="${src}"
-              style="width:70px;height:70px;object-fit:cover;border-radius:10px">`
-          : "";
+      formatter:c=>{
+        const src=driveImg(c.getValue());
+        return src?`<img loading="lazy" src="${src}"
+          style="width:70px;height:70px;object-fit:cover;border-radius:10px">`:"";
       }
     }
   ]
@@ -141,57 +128,58 @@ async function loadData(){
   const ws=wb.Sheets[wb.SheetNames[0]];
   const raw=XLSX.utils.sheet_to_json(ws,{defval:""});
 
-  totalDisponibles=0;
-
-  const rows=raw.map(r=>{
-    const estatus=pick(r,["ESTATUS2"]).toString();
-    if(estatus.toUpperCase()!=="BLOQUEO") totalDisponibles++;
-
-    return{
-      CODIGO:pick(r,["CODIGO","ID","SKU"]),
-      NOMBRE:pick(r,["NOMBRE","PRODUCTO"]),
-      DETALLE:pick(r,["DETALLE","DESCRIPCION"]),
-      MARCA:pick(r,["MARCA"]),
-      FAMILIA:pick(r,["FAMILIA","CATEGORIA"]),
-      CANTIDAD:Number(pick(r,["CANTIDAD","QTY"]))||0,
-      FOTO:pick(r,["FOTO","IMAGEN","URL_FOTO"]),
-      ESTATUS2:estatus
-    };
-  });
+  const rows=raw.map(r=>({
+    CODIGO:pick(r,["CODIGO","ID","SKU"]),
+    NOMBRE:pick(r,["NOMBRE","PRODUCTO"]),
+    DETALLE:pick(r,["DETALLE","DESCRIPCION"]),
+    MARCA:pick(r,["MARCA"]),
+    FAMILIA:pick(r,["FAMILIA","CATEGORIA"]),
+    CANTIDAD:Number(pick(r,["CANTIDAD","QTY"]))||0,
+    FOTO:pick(r,["FOTO","IMAGEN","URL_FOTO"]),
+    ESTATUS2:pick(r,["ESTATUS2"]).toString()
+  }));
 
   table.replaceData(rows);
+  updateCounter();
+}
+
+/* ================= CONTADOR ================= */
+function updateCounter(){
   document.getElementById("counter").textContent =
-    `Disponibles: ${totalDisponibles}`;
+    `Visibles: ${table.getRows(true).length}`;
 }
 
 /* ================= DEBOUNCE ================= */
-function debounce(fn, delay){
-  let t;
-  return (...args)=>{
-    clearTimeout(t);
-    t=setTimeout(()=>fn(...args),delay);
-  };
+function debounce(fn,delay){
+  let t; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a),delay); };
 }
 
-/* ================= BÚSQUEDA ================= */
-const doSearch = debounce(value=>{
-  searchTerm = value.toLowerCase();
+/* ================= BÚSQUEDA (SOLO COINCIDENCIAS) ================= */
+const doSearch=debounce(value=>{
+  searchTerm=value.toLowerCase();
+
+  if(!searchTerm){
+    table.clearFilter(true);        // sin búsqueda → todo visible (excepto bloqueados)
+    table.redraw(true);
+    updateCounter();
+    return;
+  }
 
   table.setFilter(data=>{
-    const hay =
+    const hit =
       data.CODIGO.toLowerCase().includes(searchTerm) ||
       data.NOMBRE.toLowerCase().includes(searchTerm) ||
       data.DETALLE.toLowerCase().includes(searchTerm) ||
       data.MARCA.toLowerCase().includes(searchTerm) ||
       data.FAMILIA.toLowerCase().includes(searchTerm);
-
-    return hay;
+    return hit; // 👈 SOLO las coincidencias se muestran
   });
 
   table.redraw(true);
+  updateCounter();
 },300);
 
-document.getElementById("q").oninput = e => doSearch(e.target.value);
+document.getElementById("q").oninput=e=>doSearch(e.target.value);
 
 /* ================= BOTONES ================= */
 document.getElementById("toggleBloq").onclick=()=>{
@@ -199,11 +187,12 @@ document.getElementById("toggleBloq").onclick=()=>{
   table.redraw(true);
   document.getElementById("toggleBloq").textContent =
     mostrarBloqueados?"Ocultar bloqueados":"Mostrar bloqueados";
+  updateCounter();
 };
 
 document.getElementById("exportBtn").onclick=()=>{
-  table.download("xlsx","inventario_disponibles.xlsx",{
-    sheetName:"Disponibles",
+  table.download("xlsx","inventario_visibles.xlsx",{
+    sheetName:"Visibles",
     rowRange:"active"
   });
 };
@@ -211,6 +200,8 @@ document.getElementById("exportBtn").onclick=()=>{
 document.getElementById("groupBy").onchange=e=>{
   if(e.target.value==="none") table.setGroupBy();
   else table.setGroupBy(e.target.value);
+  table.redraw(true);
+  updateCounter();
 };
 
 loadData();
