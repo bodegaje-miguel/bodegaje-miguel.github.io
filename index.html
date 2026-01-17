@@ -96,17 +96,10 @@ async function loadAny(){
         FOTO:     pick(r, ["FOTO","IMAGEN","IMAGE","URL_FOTO","URL IMAGEN"]).toString(),
         LOTE:     pick(r, ["LOTE","BLOQUEO","ESTADO"]).toString(),
       }));
-      const filteredRows = rows.filter(r => {
+     const filteredRows = rows.filter(r => {
   const lote = (r.LOTE || "").trim().toUpperCase();
-
-  return (
-    lote === "" ||
-    (
-      !lote.includes("BLOQUO") &&
-      lote !== "SI" &&
-      lote !== "YES" &&
-      lote !== "TRUE" &&
-      lote !== "X"
+  return lote !== "BLOQUEO";
+})
     )
   );
 });
