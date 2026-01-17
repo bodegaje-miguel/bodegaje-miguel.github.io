@@ -14,47 +14,107 @@
   --bg:#0b1220; --card:#121a2b; --soft:#1b2741;
   --text:#e9eefb; --hl:#4fc3f7;
 }
-body{margin:0;font-family:system-ui;background:var(--bg);color:var(--text)}
-.wrap{max-width:1400px;margin:20px auto;padding:0 14px}
-.card{background:var(--card);border:1px solid var(--soft);border-radius:16px;padding:14px}
+
+body{
+  margin:0;
+  font-family:system-ui;
+  background:var(--bg);
+  color:var(--text);
+}
+
+.wrap{
+  max-width:1400px;
+  margin:20px auto;
+  padding:0 14px;
+}
+
+.card{
+  background:var(--card);
+  border:1px solid var(--soft);
+  border-radius:16px;
+  padding:14px;
+}
 
 .toolbar{
-  display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:10px
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+  align-items:center;
+  margin-bottom:10px;
 }
-.toolbar .field{
-  display:flex;gap:6px;align-items:center;
-  background:var(--soft);border-radius:10px;padding:6px 8px
-}
-.toolbar input,.toolbar select{
-  background:transparent;border:none;outline:none;color:var(--text)
-}
-.btn{
-  background:#2a7ef0;color:white;border:none;
-  border-radius:10px;padding:8px 12px;font-weight:600;cursor:pointer
-}
-.counter{margin-left:auto;font-weight:600}
 
-/* ⬇️ ALTURA CORRECTA */
+.toolbar .field{
+  display:flex;
+  gap:6px;
+  align-items:center;
+  background:var(--soft);
+  border-radius:10px;
+  padding:6px 8px;
+}
+
+.toolbar input,
+.toolbar select{
+  background:transparent;
+  border:none;
+  outline:none;
+  color:var(--text);
+}
+
+.btn{
+  background:#2a7ef0;
+  color:white;
+  border:none;
+  border-radius:10px;
+  padding:8px 12px;
+  font-weight:600;
+  cursor:pointer;
+}
+
+.counter{
+  margin-left:auto;
+  font-weight:600;
+}
+
+/* ⬇️ TABLA (MISMA QUE FUNCIONABA) */
 #table{
-  height:70vh;
+  height:600px;
   border-radius:12px;
   overflow:hidden;
 }
 
-mark{background:var(--hl);color:#000;border-radius:3px;padding:0 2px}
+/* ===== SOLO MEJORAS VISUALES PC ===== */
 
-/* filas compactas */
-.tabulator-row .tabulator-cell{padding:3px 5px;font-size:12px}
-
-/* PC */
-@media (min-width:769px){
-  .tabulator-cell{padding:4px 6px}
-  .tabulator-col-title{padding:4px 6px;font-size:13px}
+/* filas un poco más compactas */
+.tabulator-row .tabulator-cell{
+  padding:4px 6px;
+  font-size:13px;
 }
 
-/* móvil */
+/* en PC juntar columnas */
+@media (min-width:769px){
+  .tabulator-cell{
+    padding:4px 6px !important;
+  }
+  .tabulator-col-title{
+    padding:4px 6px !important;
+    font-size:13px;
+  }
+}
+
+/* móvil sin cambios */
 @media (max-width:768px){
-  img{max-width:48px;max-height:48px}
+  img{
+    max-width:48px;
+    max-height:48px;
+  }
+}
+
+/* resaltado */
+mark{
+  background:var(--hl);
+  color:#000;
+  border-radius:3px;
+  padding:0 2px;
 }
 
 /* stock */
@@ -98,17 +158,18 @@ let searchValue="";
 function pick(r,a){
   for(const x of a){
     for(const k of Object.keys(r)){
-      if(k && k.normalize("NFD").replace(/\p{Diacritic}/gu,"").toUpperCase()
-        === x.normalize("NFD").replace(/\p{Diacritic}/gu,"").toUpperCase()){
+      if(k && k.normalize("NFD").replace(/\\p{Diacritic}/gu,"").toUpperCase()
+        === x.normalize("NFD").replace(/\\p{Diacritic}/gu,"").toUpperCase()){
         return r[k];
       }
     }
   }
   return "";
 }
+
 function img(url){
   if(!url) return "";
-  const m=url.match(/\/file\/d\/([^/]+)\//);
+  const m=url.match(/\\/file\\/d\\/([^/]+)\\//);
   return m?`https://drive.google.com/uc?export=view&id=${m[1]}`:url;
 }
 
@@ -140,27 +201,25 @@ function stockFmt(c){
   return `<span class="stock-high">🟢 ${v}</span>`;
 }
 
-/* tabla */
+/* TABULATOR – CONFIG ORIGINAL */
 let table=new Tabulator("#table",{
-  layout: window.innerWidth>768 ? "fitDataStretch":"fitColumns",
-  height:"70vh",
-  virtualDom:true,
-  responsiveLayout:"hide",
+  layout:"fitColumns",
   placeholder:"Sin datos",
   columns:[
-    {title:"Código",field:"CODIGO",width:90,responsive:0,formatter:c=>hl(c.getValue())},
-    {title:"Nombre",field:"NOMBRE",width:180,responsive:0,formatter:c=>hl(c.getValue())},
-    {title:"Detalle",field:"DETALLE",width:260,responsive:0,formatter:c=>hl(c.getValue())},
-    {title:"Stock",field:"CANTIDAD",width:90,responsive:0,formatter:stockFmt},
-    {title:"Foto",field:"FOTO",width:80,responsive:0,hozAlign:"center",
+    {title:"Código",field:"CODIGO",width:100,formatter:c=>hl(c.getValue())},
+    {title:"Nombre",field:"NOMBRE",width:200,formatter:c=>hl(c.getValue())},
+    {title:"Detalle",field:"DETALLE",minWidth:260,formatter:c=>hl(c.getValue())},
+    {title:"Stock",field:"CANTIDAD",width:100,formatter:stockFmt},
+    {
+      title:"Foto",field:"FOTO",width:90,hozAlign:"center",
       formatter:c=>{
         const s=img(c.getValue());
         return s?`<img loading="lazy" src="${s}"
           style="width:46px;height:46px;object-fit:cover;border-radius:6px">`:"";
       }
     },
-    {title:"Marca",field:"MARCA",width:130,responsive:5},
-    {title:"Familia",field:"FAMILIA",width:140,responsive:6},
+    {title:"Marca",field:"MARCA",width:140},
+    {title:"Familia",field:"FAMILIA",width:160},
   ]
 });
 
