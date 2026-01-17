@@ -152,7 +152,7 @@ function stockFmt(c){
 
 /* tabla */
 let table=new Tabulator("#table",{
-  layout: window.innerWidth > 768 ? "fitDataStretch" : "fitColumns",
+  layout:"fitColumns",
   virtualDom:true,
   responsiveLayout:"hide",
   placeholder:"Sin datos",
@@ -167,16 +167,7 @@ let table=new Tabulator("#table",{
         const s=img(c.getValue());
         return s?`<img loading="lazy" src="${s}"
           style="width:48px;height:48px;object-fit:cover;border-radius:6px">`:"";
-        @media (min-width:769px){
-  .tabulator-cell{
-    padding:4px 6px !important;
-  }
-
-  .tabulator-col-title{
-    padding:4px 6px !important;
-    font-size:13px;
-  }
-}
+      
       }
     },
     {title:"Marca", field:"MARCA", responsive:5, visible:false}
