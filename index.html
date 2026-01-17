@@ -129,7 +129,7 @@ async function loadData(){
   totalDisponibles=0;
 
   const rows=raw.map(r=>{
-    const lote=pick(r,["ESTATUS2","BLOQUEO","ESTADO"]).toString();
+    const lote=pick(r,["LOTE","BLOQUEO","ESTADO"]).toString();
     if(lote.toUpperCase()!=="BLOQUEO") totalDisponibles++;
 
     return{
@@ -140,7 +140,7 @@ async function loadData(){
       FAMILIA:pick(r,["FAMILIA","CATEGORIA"]),
       CANTIDAD:Number(pick(r,["CANTIDAD","QTY"]))||0,
       FOTO:pick(r,["FOTO","IMAGEN","URL_FOTO"]),
-      ESTATUS2:lote
+      LOTE:lote
     };
   });
 
