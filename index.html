@@ -129,7 +129,7 @@ let table = new Tabulator("#table", {
     {title:"Cantidad", field:"CANTIDAD", hozAlign:"right", width:120},
     {title:"Marca", field:"MARCA", width:140},
     {title:"Familia", field:"FAMILIA", width:140},
-    {title:"Lote", field:"ESTATUS2", width:120},
+    {title:"ESTATUS2", field:"ESTATUS2", width:120},
   ]
 });
 
@@ -159,7 +159,7 @@ async function loadAny(){
         MARCA: pick(r, ["MARCA"]).toString(),
         FAMILIA: pick(r, ["FAMILIA","CATEGORIA"]).toString(),
         CANTIDAD: Number(pick(r, ["CANTIDAD","QTY"])) || 0,
-        ESTATUS: pick(r, ["ESTATUS2","BLOQUEO","ESTADO"]).toString(),
+        ESTATUS2: pick(r, ["ESTATUS2","BLOQUEO","ESTADO"]).toString(),
       }));
 
       table.replaceData(rows);
