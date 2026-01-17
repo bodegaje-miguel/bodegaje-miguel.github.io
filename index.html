@@ -118,6 +118,27 @@ function setStatus(t){
   document.getElementById("status").textContent = t;
 }
 
+/* =================== FILTRO GLOBAL =================== */
+let searchValue = "";
+
+function filtroGlobal(data){
+  // 🔒 Ocultar bloqueados SIEMPRE
+  const estatus = (data.ESTATUS2 || "").trim().toUpperCase();
+  if(estatus === "BLOQUEO") return false;
+
+  // 🔍 Búsqueda (igual que antes)
+  if(!searchValue) return true;
+
+  const v = searchValue;
+  return (
+    data.CODIGO.toLowerCase().includes(v) ||
+    data.NOMBRE.toLowerCase().includes(v) ||
+    data.DETALLE.toLowerCase().includes(v) ||
+    data.MARCA.toLowerCase().includes(v) ||
+    data.FAMILIA.toLowerCase().includes(v)
+  );
+}
+
 /* =================== TABULATOR =================== */
 let table = new Tabulator("#table", {
   layout:"fitColumns",
@@ -132,12 +153,6 @@ let table = new Tabulator("#table", {
     {title:"ESTATUS2", field:"ESTATUS2", width:120},
   ]
 });
-
-/* =================== FILTRO BLOQUEO =================== */
-function filtroBloqueo(data){
-  const lote = (data.ESTATUS2 || "").trim().toUpperCase();
-  return lote !== "BLOQUEO";
-}
 
 /* =================== CARGA =================== */
 async function loadAny(){
@@ -163,7 +178,7 @@ async function loadAny(){
       }));
 
       table.replaceData(rows);
-      table.setFilter(filtroBloqueo);
+      table.setFilter(filtroGlobal);
 
       setStatus("Carga correcta");
       return;
@@ -175,21 +190,8 @@ async function loadAny(){
 
 /* =================== BUSCADOR =================== */
 function applySearch(q){
-  const v = (q || "").trim().toLowerCase();
-
-  if(!v){
-    table.setFilter(filtroBloqueo);
-    return;
-  }
-
-  table.setFilter([
-    filtroBloqueo,
-    [
-      {field:"CODIGO", type:"like", value:v},
-      {field:"NOMBRE", type:"like", value:v},
-      {field:"DETALLE", type:"like", value:v},
-    ]
-  ]);
+  searchValue = (q || "").trim().toLowerCase();
+  table.setFilter(filtroGlobal);
 }
 
 /* =================== AGRUPACIÓN =================== */
