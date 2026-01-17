@@ -43,7 +43,7 @@ mark{background:var(--hl);color:black;border-radius:3px;padding:0 2px}
 /* indicadores stock */
 .stock-0{color:#ff5252;font-weight:700}
 .stock-low{color:#ff9800;font-weight:700}
-.stock-mid{color:##ffb300;font-weight:700}
+.stock-mid{color:#ffb300;font-weight:700}   /* CORREGIDO */
 .stock-high{color:#4caf50;font-weight:700}
 </style>
 </head>
@@ -129,15 +129,18 @@ let table=new Tabulator("#table",{
   layout:"fitColumns",
   height:"600px",
   virtualDom:true,
+  responsiveLayout:"hide",   /* 🔑 CLAVE */
   placeholder:"Sin datos",
   columns:[
-    {title:"Código",field:"CODIGO",width:120,formatter:c=>hl(c.getValue())},
-    {title:"Nombre",field:"NOMBRE",minWidth:160,formatter:c=>hl(c.getValue())},
-    {title:"Detalle",field:"DETALLE",minWidth:240,formatter:c=>hl(c.getValue())},
-    {title:"Stock",field:"CANTIDAD",width:160,formatter:stockFmt},
-    {title:"Marca",field:"MARCA",width:140,formatter:c=>hl(c.getValue())},
-    {title:"Familia",field:"FAMILIA",width:140,formatter:c=>hl(c.getValue())},
-    {title:"Foto",field:"FOTO",width:110,hozAlign:"center",
+    {title:"Código",field:"CODIGO",width:120,responsive:0,formatter:c=>hl(c.getValue())},
+    {title:"Nombre",field:"NOMBRE",minWidth:160,responsive:0,formatter:c=>hl(c.getValue())},
+    {title:"Detalle",field:"DETALLE",minWidth:240,responsive:1,formatter:c=>hl(c.getValue())},
+    {title:"Stock",field:"CANTIDAD",width:160,responsive:0,formatter:stockFmt},
+
+    {title:"Marca",field:"MARCA",width:140,responsive:3,formatter:c=>hl(c.getValue())},
+    {title:"Familia",field:"FAMILIA",width:140,responsive:4,formatter:c=>hl(c.getValue())},
+
+    {title:"Foto",field:"FOTO",width:110,responsive:0,hozAlign:"center",
       formatter:c=>{
         const s=img(c.getValue());
         return s?`<img loading="lazy" src="${s}"
@@ -147,7 +150,7 @@ let table=new Tabulator("#table",{
   ]
 });
 
-/* contador correcto */
+/* contador */
 function updateCounter(){
   document.getElementById("counter").textContent=
     `Visibles: ${table.getData("active").length}`;
