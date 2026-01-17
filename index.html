@@ -11,8 +11,10 @@
 
   <style>
     :root{
-      --bg:#0b1220; --card:#121a2b; --soft:#1b2741;
-      --text:#e9eefb; --muted:#a9b6d3;
+      --bg:#0b1220;
+      --card:#121a2b;
+      --soft:#1b2741;
+      --text:#e9eefb;
     }
     body{
       margin:0;
@@ -26,86 +28,63 @@
       border:1px solid var(--soft);
       border-radius:16px;
       padding:16px;
-      box-shadow:0 10px 24px rgba(0,0,0,.25);
     }
     .toolbar{
       display:flex;
-      flex-wrap:wrap;
       gap:12px;
-      align-items:center;
       margin-bottom:12px;
-    }
-    .toolbar .field{
-      display:flex;
-      gap:8px;
-      align-items:center;
-      background:var(--soft);
-      border-radius:12px;
-      padding:8px 10px;
+      flex-wrap:wrap;
     }
     .toolbar input, .toolbar select{
-      background:transparent;
+      background:#1b2741;
       border:none;
-      outline:none;
-      color:var(--text);
-      font-size:14px;
-      min-width:160px;
+      color:white;
+      padding:8px 10px;
+      border-radius:8px;
     }
     .btn{
       background:#2a7ef0;
       color:white;
       border:none;
-      border-radius:12px;
-      padding:10px 14px;
+      padding:8px 14px;
+      border-radius:8px;
       cursor:pointer;
       font-weight:600;
     }
-    .status{ font-size:12px; color:#c3cfe7; white-space:pre-wrap }
-    #table{ border-radius:12px; overflow:hidden; height:600px; }
+    #table{ height:600px; }
   </style>
 </head>
 
 <body>
 <div class="wrap">
   <div class="card">
-    <h1 style="margin:0 0 8px 0; font-size:20px;">
-      Inventario desde Google Sheets
-    </h1>
+    <h2>Inventario desde Google Sheets</h2>
 
     <div class="toolbar">
-      <div class="field">
-        <input id="q" placeholder="Buscar…" />
-      </div>
-
-      <div class="field">
-        <span>Agrupar:</span>
-        <select id="groupBy">
-          <option value="none">Sin agrupación</option>
-          <option value="FAMILIA">Familia</option>
-          <option value="MARCA">Marca</option>
-        </select>
-      </div>
-
+      <input id="q" placeholder="Buscar…" />
+      <select id="groupBy">
+        <option value="none">Sin agrupación</option>
+        <option value="FAMILIA">Familia</option>
+        <option value="MARCA">Marca</option>
+      </select>
       <button id="reloadBtn" class="btn">Recargar</button>
     </div>
 
-    <div class="status" id="status">Listo.</div>
     <div id="table"></div>
   </div>
 </div>
 
 <script>
-/* =================== FUENTES =================== */
+/* ================= FUENTES ================= */
 const CANDIDATES = [
   "https://docs.google.com/spreadsheets/d/e/2PACX-1vTUkpzEC6aZsl0Ur9f3Jwu3NcuZBq2tzrT_weH8QamLt7qsvJMzUKWkZfc-xNX7Pw/pub?output=csv",
   "https://docs.google.com/spreadsheets/d/1UCJUvGvb2tXTv_zsx0SKFwNdDj_uVR2Hf/gviz/tq?tqx=out:csv&gid=1315400324"
 ];
 
-/* =================== HELPERS =================== */
+/* ================= UTIL ================= */
 function pick(row, aliases){
   for(const a of aliases){
     for(const k of Object.keys(row)){
-      if(!k) continue;
       const kk = k.normalize("NFD").replace(/\p{Diacritic}/gu,"").toUpperCase().trim();
       const aa = a.normalize("NFD").replace(/\p{Diacritic}/gu,"").toUpperCase().trim();
       if(kk === aa) return row[k];
@@ -114,38 +93,38 @@ function pick(row, aliases){
   return "";
 }
 
-function setStatus(t){
-  document.getElementById("status").textContent = t;
-}
-
-/* =================== TABULATOR =================== */
+/* ================= TABULATOR ================= */
 let table = new Tabulator("#table", {
   layout:"fitColumns",
   placeholder:"Sin datos",
+
+  /* 🔴 AQUÍ SE OCULTA LA FILA COMPLETA */
+  rowFormatter:function(row){
+    const data = row.getData();
+    const lote = (data.LOTE || "").toString().trim().toUpperCase();
+
+    if(lote === "BLOQUEO"){
+      row.getElement().style.display = "none";
+    }
+  },
+
   columns:[
     {title:"Código", field:"CODIGO", width:120},
     {title:"Nombre", field:"NOMBRE", minWidth:160},
     {title:"Detalle", field:"DETALLE", minWidth:240},
-    {title:"Cantidad", field:"CANTIDAD", hozAlign:"right", width:120},
+    {title:"Cantidad", field:"CANTIDAD", width:100, hozAlign:"right"},
     {title:"Marca", field:"MARCA", width:140},
     {title:"Familia", field:"FAMILIA", width:140},
     {title:"Lote", field:"LOTE", width:120},
   ]
 });
 
-/* =================== FILTRO BLOQUEO =================== */
-function filtroBloqueo(data){
-  const lote = (data.LOTE || "").trim().toUpperCase();
-  return lote !== "BLOQUEO";
-}
-
-/* =================== CARGA =================== */
+/* ================= CARGA ================= */
 async function loadAny(){
   for(const url of CANDIDATES){
     try{
-      setStatus("Cargando: " + url);
       const res = await fetch(url, {cache:"no-store"});
-      if(!res.ok) throw new Error(res.status);
+      if(!res.ok) throw new Error();
 
       const text = await res.text();
       const wb = XLSX.read(text, {type:"string"});
@@ -153,55 +132,40 @@ async function loadAny(){
       const raw = XLSX.utils.sheet_to_json(ws, {defval:""});
 
       const rows = raw.map(r => ({
-        CODIGO: pick(r, ["CODIGO","ID","SKU"]).toString(),
-        NOMBRE: pick(r, ["NOMBRE","PRODUCTO","ITEM"]).toString(),
-        DETALLE: pick(r, ["DETALLE","DESCRIPCION"]).toString(),
-        MARCA: pick(r, ["MARCA"]).toString(),
-        FAMILIA: pick(r, ["FAMILIA","CATEGORIA"]).toString(),
+        CODIGO: pick(r, ["CODIGO","ID","SKU"]),
+        NOMBRE: pick(r, ["NOMBRE","PRODUCTO"]),
+        DETALLE: pick(r, ["DETALLE","DESCRIPCION"]),
+        MARCA: pick(r, ["MARCA"]),
+        FAMILIA: pick(r, ["FAMILIA","CATEGORIA"]),
         CANTIDAD: Number(pick(r, ["CANTIDAD","QTY"])) || 0,
-        LOTE: pick(r, ["LOTE","BLOQUEO","ESTADO"]).toString(),
+        LOTE: pick(r, ["LOTE","BLOQUEO","ESTADO"]),
       }));
 
       table.replaceData(rows);
-      table.setFilter(filtroBloqueo);
-
-      setStatus("Carga correcta");
       return;
 
     }catch(e){}
   }
-  setStatus("Error cargando datos");
 }
 
-/* =================== BUSCADOR =================== */
-function applySearch(q){
-  const v = (q || "").trim().toLowerCase();
+/* ================= BUSCAR ================= */
+document.getElementById("q").addEventListener("input", e => {
+  const v = e.target.value.toLowerCase();
 
-  if(!v){
-    table.setFilter(filtroBloqueo);
-    return;
-  }
+  table.setFilter(data =>
+    data.CODIGO.toLowerCase().includes(v) ||
+    data.NOMBRE.toLowerCase().includes(v) ||
+    data.DETALLE.toLowerCase().includes(v)
+  );
+});
 
-  table.setFilter([
-    filtroBloqueo,
-    [
-      {field:"CODIGO", type:"like", value:v},
-      {field:"NOMBRE", type:"like", value:v},
-      {field:"DETALLE", type:"like", value:v},
-    ]
-  ]);
-}
+/* ================= AGRUPAR ================= */
+document.getElementById("groupBy").addEventListener("change", e => {
+  if(e.target.value === "none") table.setGroupBy();
+  else table.setGroupBy(e.target.value);
+});
 
-/* =================== AGRUPACIÓN =================== */
-function applyGrouping(mode){
-  if(mode === "FAMILIA") table.setGroupBy("FAMILIA");
-  else if(mode === "MARCA") table.setGroupBy("MARCA");
-  else table.setGroupBy();
-}
-
-/* =================== EVENTOS =================== */
-document.getElementById("q").addEventListener("input", e => applySearch(e.target.value));
-document.getElementById("groupBy").addEventListener("change", e => applyGrouping(e.target.value));
+/* ================= EVENTOS ================= */
 document.getElementById("reloadBtn").addEventListener("click", loadAny);
 
 loadAny();
