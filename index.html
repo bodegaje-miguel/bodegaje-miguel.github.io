@@ -1,11 +1,11 @@
 <!doctype html>
 <html lang="es">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Inventario – Google Sheets</title>
 
-<link href="https://cdn.jsdelivr.net/npm/tabulator-tables@6.2.5/dist/css/tabulator.min.css" rel="stylesheet" />
+<link href="https://cdn.jsdelivr.net/npm/tabulator-tables@6.2.5/dist/css/tabulator.min.css" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/tabulator-tables@6.2.5/dist/js/tabulator.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
@@ -21,209 +21,178 @@ body{margin:0;font-family:system-ui;background:var(--bg);color:var(--text)}
   border:1px solid var(--soft);
   border-radius:16px;
   padding:16px;
-  box-shadow:0 10px 24px rgba(0,0,0,.25);
 }
 .toolbar{
-  display:flex;
-  flex-wrap:wrap;
-  gap:12px;
-  align-items:center;
-  margin-bottom:12px;
+  display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-bottom:12px
 }
 .toolbar .field{
-  display:flex;
-  gap:8px;
-  align-items:center;
-  background:var(--soft);
-  border-radius:12px;
-  padding:8px 10px;
+  display:flex;gap:8px;align-items:center;
+  background:var(--soft);border-radius:12px;padding:8px 10px
 }
 .toolbar input,.toolbar select{
-  background:transparent;
-  border:none;
-  outline:none;
-  color:var(--text);
-  font-size:14px;
-  min-width:160px;
+  background:transparent;border:none;outline:none;color:var(--text)
 }
 .btn{
-  background:#2a7ef0;
-  color:white;
-  border:none;
-  border-radius:12px;
-  padding:10px 14px;
-  cursor:pointer;
-  font-weight:600;
+  background:#2a7ef0;color:white;border:none;
+  border-radius:12px;padding:10px 14px;font-weight:600;cursor:pointer
 }
-.counter{
-  margin-left:auto;
-  font-weight:600;
-}
-#table{border-radius:12px;overflow:hidden;height:600px}
-mark{
-  background:var(--hl);
-  color:black;
-  padding:0 2px;
-  border-radius:3px;
-}
+.counter{margin-left:auto;font-weight:600}
+#table{height:600px;border-radius:12px;overflow:hidden}
+mark{background:var(--hl);color:black;border-radius:3px;padding:0 2px}
+
+/* indicadores stock */
+.stock-0{color:#ff5252;font-weight:700}
+.stock-low{color:#ff9800;font-weight:700}
+.stock-mid{color:#ffeb3b;font-weight:700}
+.stock-high{color:#4caf50;font-weight:700}
 </style>
 </head>
 
 <body>
 <div class="wrap">
-  <div class="card">
-    <h1 style="margin:0 0 8px 0;font-size:20px">
-      Inventario desde Google Sheets
-    </h1>
+<div class="card">
+<h2>Inventario</h2>
 
-    <div class="toolbar">
-      <div class="field">
-        <input id="q" placeholder="Buscar…" />
-      </div>
+<div class="toolbar">
+  <div class="field"><input id="q" placeholder="Buscar…"></div>
 
-      <div class="field">
-        <span>Agrupar:</span>
-        <select id="groupBy">
-          <option value="none">Sin agrupación</option>
-          <option value="FAMILIA">Familia</option>
-          <option value="MARCA">Marca</option>
-        </select>
-      </div>
-
-      <button id="exportBtn" class="btn">Exportar visibles</button>
-
-      <div class="counter" id="counter">Visibles: 0</div>
-    </div>
-
-    <div id="table"></div>
+  <div class="field">
+    <span>Agrupar:</span>
+    <select id="groupBy">
+      <option value="none">Sin agrupación</option>
+      <option value="FAMILIA">Familia</option>
+      <option value="MARCA">Marca</option>
+    </select>
   </div>
+
+  <button id="exportBtn" class="btn">Exportar visibles</button>
+  <div class="counter" id="counter">Visibles: 0</div>
+</div>
+
+<div id="table"></div>
+</div>
 </div>
 
 <script>
-/* ================= FUENTE ================= */
-const SOURCE =
-  "https://docs.google.com/spreadsheets/d/e/2PACX-1vTUkpzEC6aZsl0Ur9f3Jwu3NcuZBq2tzrT_weH8QamLt7qsvJMzUKWkZfc-xNX7Pw/pub?output=csv";
+const SOURCE="https://docs.google.com/spreadsheets/d/e/2PACX-1vTUkpzEC6aZsl0Ur9f3Jwu3NcuZBq2tzrT_weH8QamLt7qsvJMzUKWkZfc-xNX7Pw/pub?output=csv";
 
-/* ================= HELPERS ================= */
-function pick(row, aliases){
-  for(const a of aliases){
-    for(const k of Object.keys(row)){
-      if(!k) continue;
-      const kk=k.normalize("NFD").replace(/\p{Diacritic}/gu,"").toUpperCase().trim();
-      const aa=a.normalize("NFD").replace(/\p{Diacritic}/gu,"").toUpperCase().trim();
-      if(kk===aa) return row[k];
+let searchValue="";
+
+/* helpers */
+function pick(r,a){
+  for(const x of a){
+    for(const k of Object.keys(r)){
+      if(k && k.normalize("NFD").replace(/\p{Diacritic}/gu,"").toUpperCase()
+        === x.normalize("NFD").replace(/\p{Diacritic}/gu,"").toUpperCase()){
+        return r[k];
+      }
     }
   }
   return "";
 }
-function driveImg(url){
+function img(url){
   if(!url) return "";
   const m=url.match(/\/file\/d\/([^/]+)\//);
   return m?`https://drive.google.com/uc?export=view&id=${m[1]}`:url;
 }
 
-/* ================= FILTRO GLOBAL ================= */
-let searchValue="";
-
-function filtroGlobal(data){
-  const estatus=(data.ESTATUS2||"").trim().toUpperCase();
-  if(estatus==="BLOQUEO") return false;
-
+/* filtro global */
+function filtro(d){
+  if((d.ESTATUS2||"").toUpperCase()==="BLOQUEO") return false;
   if(!searchValue) return true;
-
-  const v=searchValue;
   return (
-    data.CODIGO.toLowerCase().includes(v) ||
-    data.NOMBRE.toLowerCase().includes(v) ||
-    data.DETALLE.toLowerCase().includes(v) ||
-    data.MARCA.toLowerCase().includes(v) ||
-    data.FAMILIA.toLowerCase().includes(v)
+    d.CODIGO.toLowerCase().includes(searchValue)||
+    d.NOMBRE.toLowerCase().includes(searchValue)||
+    d.DETALLE.toLowerCase().includes(searchValue)||
+    d.MARCA.toLowerCase().includes(searchValue)||
+    d.FAMILIA.toLowerCase().includes(searchValue)
   );
 }
 
-/* ================= TABULATOR ================= */
+/* resaltado */
+function hl(t){
+  if(!searchValue) return t||"";
+  return String(t).replace(new RegExp(`(${searchValue})`,"gi"),"<mark>$1</mark>");
+}
+
+/* indicador stock */
+function stockFmt(c){
+  const v=c.getValue();
+  if(v===0) return `<span class="stock-0">🔴 Sin stock</span>`;
+  if(v<=5) return `<span class="stock-low">🟠 Bajo (${v})</span>`;
+  if(v<=20) return `<span class="stock-mid">🟡 Medio (${v})</span>`;
+  return `<span class="stock-high">🟢 Alto (${v})</span>`;
+}
+
+/* tabla */
 let table=new Tabulator("#table",{
   layout:"fitColumns",
+  height:"600px",
+  virtualDom:true,
   placeholder:"Sin datos",
   columns:[
-    {title:"Código",field:"CODIGO",width:120,formatter:c=>highlight(c.getValue())},
-    {title:"Nombre",field:"NOMBRE",minWidth:160,formatter:c=>highlight(c.getValue())},
-    {title:"Detalle",field:"DETALLE",minWidth:240,formatter:c=>highlight(c.getValue())},
-    {title:"Cantidad",field:"CANTIDAD",hozAlign:"right",width:120},
-    {title:"Marca",field:"MARCA",width:140,formatter:c=>highlight(c.getValue())},
-    {title:"Familia",field:"FAMILIA",width:140,formatter:c=>highlight(c.getValue())},
-    {
-      title:"Foto",field:"FOTO",width:110,hozAlign:"center",
+    {title:"Código",field:"CODIGO",width:120,formatter:c=>hl(c.getValue())},
+    {title:"Nombre",field:"NOMBRE",minWidth:160,formatter:c=>hl(c.getValue())},
+    {title:"Detalle",field:"DETALLE",minWidth:240,formatter:c=>hl(c.getValue())},
+    {title:"Stock",field:"CANTIDAD",width:160,formatter:stockFmt},
+    {title:"Marca",field:"MARCA",width:140,formatter:c=>hl(c.getValue())},
+    {title:"Familia",field:"FAMILIA",width:140,formatter:c=>hl(c.getValue())},
+    {title:"Foto",field:"FOTO",width:110,hozAlign:"center",
       formatter:c=>{
-        const src=driveImg(c.getValue());
-        return src?`<img loading="lazy" src="${src}"
+        const s=img(c.getValue());
+        return s?`<img loading="lazy" src="${s}"
           style="width:70px;height:70px;object-fit:cover;border-radius:10px">`:"";
       }
     }
   ]
 });
 
-/* ================= RESALTADO ================= */
-function highlight(text){
-  if(!searchValue) return text||"";
-  const re=new RegExp(`(${searchValue})`,"gi");
-  return String(text||"").replace(re,"<mark>$1</mark>");
-}
-
-/* ================= CONTADOR (CORRECTO) ================= */
+/* contador correcto */
 function updateCounter(){
-  const visibles = table.getData("active").length;
-  document.getElementById("counter").textContent =
-    `Visibles: ${visibles}`;
+  document.getElementById("counter").textContent=
+    `Visibles: ${table.getData("active").length}`;
 }
 
-/* ================= CARGA ================= */
-async function loadData(){
-  const res=await fetch(SOURCE,{cache:"no-store"});
-  const text=await res.text();
-  const wb=XLSX.read(text,{type:"string"});
+/* carga */
+async function load(){
+  const r=await fetch(SOURCE,{cache:"no-store"});
+  const t=await r.text();
+  const wb=XLSX.read(t,{type:"string"});
   const ws=wb.Sheets[wb.SheetNames[0]];
   const raw=XLSX.utils.sheet_to_json(ws,{defval:""});
 
-  const rows=raw.map(r=>({
-    CODIGO:pick(r,["CODIGO","ID","SKU"]).toString(),
-    NOMBRE:pick(r,["NOMBRE","PRODUCTO","ITEM"]).toString(),
-    DETALLE:pick(r,["DETALLE","DESCRIPCION"]).toString(),
-    MARCA:pick(r,["MARCA"]).toString(),
-    FAMILIA:pick(r,["FAMILIA","CATEGORIA"]).toString(),
-    CANTIDAD:Number(pick(r,["CANTIDAD","QTY"]))||0,
-    FOTO:pick(r,["FOTO","IMAGEN","URL_FOTO"]).toString(),
-    ESTATUS2:pick(r,["ESTATUS2","ESTADO","BLOQUEO"]).toString(),
+  const rows=raw.map(x=>({
+    CODIGO:pick(x,["CODIGO","ID","SKU"]).toString(),
+    NOMBRE:pick(x,["NOMBRE","PRODUCTO"]).toString(),
+    DETALLE:pick(x,["DETALLE","DESCRIPCION"]).toString(),
+    MARCA:pick(x,["MARCA"]).toString(),
+    FAMILIA:pick(x,["FAMILIA","CATEGORIA"]).toString(),
+    CANTIDAD:Number(pick(x,["CANTIDAD","QTY"]))||0,
+    FOTO:pick(x,["FOTO","IMAGEN","URL_FOTO"]).toString(),
+    ESTATUS2:pick(x,["ESTATUS2","ESTADO","BLOQUEO"]).toString()
   }));
 
   table.replaceData(rows);
-  table.setFilter(filtroGlobal);
+  table.setFilter(filtro);
   updateCounter();
 }
 
-/* ================= BUSCADOR ================= */
-document.getElementById("q").addEventListener("input",e=>{
-  searchValue=(e.target.value||"").trim().toLowerCase();
-  table.setFilter(filtroGlobal);
+/* eventos */
+document.getElementById("q").oninput=e=>{
+  searchValue=(e.target.value||"").toLowerCase();
+  table.setFilter(filtro);
   updateCounter();
-});
-
-/* ================= AGRUPACIÓN ================= */
-document.getElementById("groupBy").addEventListener("change",e=>{
+};
+document.getElementById("groupBy").onchange=e=>{
   if(e.target.value==="none") table.setGroupBy();
   else table.setGroupBy(e.target.value);
   updateCounter();
-});
-
-/* ================= EXPORTAR ================= */
+};
 document.getElementById("exportBtn").onclick=()=>{
-  table.download("xlsx","inventario_visibles.xlsx",{
-    sheetName:"Visibles",
-    rowRange:"active"
-  });
+  table.download("xlsx","inventario_visibles.xlsx",{rowRange:"active"});
 };
 
-loadData();
+load();
 </script>
 </body>
 </html>
