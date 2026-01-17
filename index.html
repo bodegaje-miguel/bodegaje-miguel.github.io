@@ -1,76 +1,78 @@
-<!doctype html>
+  <!doctype html>
 <html lang="es">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Inventario – Google Sheets</title>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Inventario – Google Sheets</title>
 
-  <link href="https://cdn.jsdelivr.net/npm/tabulator-tables@6.2.5/dist/css/tabulator.min.css" rel="stylesheet" />
-  <script src="https://cdn.jsdelivr.net/npm/tabulator-tables@6.2.5/dist/js/tabulator.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<link href="https://cdn.jsdelivr.net/npm/tabulator-tables@6.2.5/dist/css/tabulator.min.css" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/tabulator-tables@6.2.5/dist/js/tabulator.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
-  <style>
-    :root{
-      --bg:#0b1220; --card:#121a2b; --soft:#1b2741;
-      --text:#e9eefb; --muted:#a9b6d3;
-    }
-    body{
-      margin:0;
-      font-family:system-ui,Segoe UI,Roboto;
-      background:var(--bg);
-      color:var(--text);
-    }
-    .wrap{ max-width:1200px; margin:24px auto; padding:0 16px; }
-    .card{
-      background:var(--card);
-      border:1px solid var(--soft);
-      border-radius:16px;
-      padding:16px;
-      box-shadow:0 10px 24px rgba(0,0,0,.25);
-    }
-    .toolbar{
-      display:flex;
-      flex-wrap:wrap;
-      gap:12px;
-      align-items:center;
-      margin-bottom:12px;
-    }
-    .toolbar .field{
-      display:flex;
-      gap:8px;
-      align-items:center;
-      background:var(--soft);
-      border-radius:12px;
-      padding:8px 10px;
-    }
-    .toolbar input, .toolbar select{
-      background:transparent;
-      border:none;
-      outline:none;
-      color:var(--text);
-      font-size:14px;
-      min-width:160px;
-    }
-    .btn{
-      background:#2a7ef0;
-      color:white;
-      border:none;
-      border-radius:12px;
-      padding:10px 14px;
-      cursor:pointer;
-      font-weight:600;
-    }
-    .status{ font-size:12px; color:#c3cfe7; white-space:pre-wrap }
-    #table{ border-radius:12px; overflow:hidden; height:600px; }
-  </style>
+<style>
+:root{
+  --bg:#0b1220; --card:#121a2b; --soft:#1b2741;
+  --text:#e9eefb; --hl:#ffd54f;
+}
+body{margin:0;font-family:system-ui;background:var(--bg);color:var(--text)}
+.wrap{max-width:1200px;margin:24px auto;padding:0 16px}
+.card{
+  background:var(--card);
+  border:1px solid var(--soft);
+  border-radius:16px;
+  padding:16px;
+  box-shadow:0 10px 24px rgba(0,0,0,.25);
+}
+.toolbar{
+  display:flex;
+  flex-wrap:wrap;
+  gap:12px;
+  align-items:center;
+  margin-bottom:12px;
+}
+.toolbar .field{
+  display:flex;
+  gap:8px;
+  align-items:center;
+  background:var(--soft);
+  border-radius:12px;
+  padding:8px 10px;
+}
+.toolbar input,.toolbar select{
+  background:transparent;
+  border:none;
+  outline:none;
+  color:var(--text);
+  font-size:14px;
+  min-width:160px;
+}
+.btn{
+  background:#2a7ef0;
+  color:white;
+  border:none;
+  border-radius:12px;
+  padding:10px 14px;
+  cursor:pointer;
+  font-weight:600;
+}
+.counter{
+  margin-left:auto;
+  font-weight:600;
+}
+#table{border-radius:12px;overflow:hidden;height:600px}
+mark{
+  background:var(--hl);
+  color:black;
+  padding:0 2px;
+  border-radius:3px;
+}
+</style>
 </head>
 
 <body>
 <div class="wrap">
   <div class="card">
-    <h1 style="margin:0 0 8px 0; font-size:20px;">
-      Inventario desde Google Sheets
-    </h1>
+    <h1 style="margin:0 0 8px 0;font-size:20px">Inventario desde Google Sheets</h1>
 
     <div class="toolbar">
       <div class="field">
@@ -86,50 +88,49 @@
         </select>
       </div>
 
-      <button id="reloadBtn" class="btn">Recargar</button>
+      <button id="exportBtn" class="btn">Exportar visibles</button>
+
+      <div class="counter" id="counter">Visibles: 0</div>
     </div>
 
-    <div class="status" id="status">Listo.</div>
     <div id="table"></div>
   </div>
 </div>
 
 <script>
-/* =================== FUENTES =================== */
-const CANDIDATES = [
-  "https://docs.google.com/spreadsheets/d/e/2PACX-1vTUkpzEC6aZsl0Ur9f3Jwu3NcuZBq2tzrT_weH8QamLt7qsvJMzUKWkZfc-xNX7Pw/pub?output=csv",
-  "https://docs.google.com/spreadsheets/d/1UCJUvGvb2tXTv_zsx0SKFwNdDj_uVR2Hf/gviz/tq?tqx=out:csv&gid=1315400324"
+/* ================= FUENTES ================= */
+const CANDIDATES=[
+  "https://docs.google.com/spreadsheets/d/e/2PACX-1vTUkpzEC6aZsl0Ur9f3Jwu3NcuZBq2tzrT_weH8QamLt7qsvJMzUKWkZfc-xNX7Pw/pub?output=csv"
 ];
 
-/* =================== HELPERS =================== */
+/* ================= HELPERS ================= */
 function pick(row, aliases){
   for(const a of aliases){
     for(const k of Object.keys(row)){
       if(!k) continue;
-      const kk = k.normalize("NFD").replace(/\p{Diacritic}/gu,"").toUpperCase().trim();
-      const aa = a.normalize("NFD").replace(/\p{Diacritic}/gu,"").toUpperCase().trim();
-      if(kk === aa) return row[k];
+      const kk=k.normalize("NFD").replace(/\p{Diacritic}/gu,"").toUpperCase().trim();
+      const aa=a.normalize("NFD").replace(/\p{Diacritic}/gu,"").toUpperCase().trim();
+      if(kk===aa) return row[k];
     }
   }
   return "";
 }
-
-function setStatus(t){
-  document.getElementById("status").textContent = t;
+function driveImg(url){
+  if(!url) return "";
+  const m=url.match(/\/file\/d\/([^/]+)\//);
+  return m?`https://drive.google.com/uc?export=view&id=${m[1]}`:url;
 }
 
-/* =================== FILTRO GLOBAL =================== */
-let searchValue = "";
+/* ================= FILTRO GLOBAL ================= */
+let searchValue="";
 
 function filtroGlobal(data){
-  // 🔒 Ocultar bloqueados SIEMPRE
-  const estatus = (data.ESTATUS2 || "").trim().toUpperCase();
-  if(estatus === "BLOQUEO") return false;
+  const estatus=(data.ESTATUS2||"").trim().toUpperCase();
+  if(estatus==="BLOQUEO") return false;
 
-  // 🔍 Búsqueda (igual que antes)
   if(!searchValue) return true;
 
-  const v = searchValue;
+  const v=searchValue;
   return (
     data.CODIGO.toLowerCase().includes(v) ||
     data.NOMBRE.toLowerCase().includes(v) ||
@@ -139,72 +140,97 @@ function filtroGlobal(data){
   );
 }
 
-/* =================== TABULATOR =================== */
-let table = new Tabulator("#table", {
+/* ================= TABULATOR ================= */
+let table=new Tabulator("#table",{
   layout:"fitColumns",
   placeholder:"Sin datos",
   columns:[
-    {title:"Código", field:"CODIGO", width:120},
-    {title:"Nombre", field:"NOMBRE", minWidth:160},
-    {title:"Detalle", field:"DETALLE", minWidth:240},
-    {title:"Cantidad", field:"CANTIDAD", hozAlign:"right", width:120},
-    {title:"Marca", field:"MARCA", width:140},
-    {title:"Familia", field:"FAMILIA", width:140},
-    {title:"ESTATUS2", field:"ESTATUS2", width:120},
+    {title:"Código",field:"CODIGO",width:120,
+      formatter:c=>highlight(c.getValue())},
+    {title:"Nombre",field:"NOMBRE",minWidth:160,
+      formatter:c=>highlight(c.getValue())},
+    {title:"Detalle",field:"DETALLE",minWidth:240,
+      formatter:c=>highlight(c.getValue())},
+    {title:"Cantidad",field:"CANTIDAD",hozAlign:"right",width:120},
+    {title:"Marca",field:"MARCA",width:140,
+      formatter:c=>highlight(c.getValue())},
+    {title:"Familia",field:"FAMILIA",width:140,
+      formatter:c=>highlight(c.getValue())},
+    {
+      title:"Foto",field:"FOTO",width:110,hozAlign:"center",
+      formatter:c=>{
+        const src=driveImg(c.getValue());
+        return src?`<img loading="lazy" src="${src}"
+          style="width:70px;height:70px;object-fit:cover;border-radius:10px">`:"";
+      }
+    }
   ]
 });
 
-/* =================== CARGA =================== */
+/* ================= RESALTADO ================= */
+function highlight(text){
+  if(!searchValue) return text||"";
+  const re=new RegExp(`(${searchValue})`,"gi");
+  return String(text||"").replace(re,"<mark>$1</mark>");
+}
+
+/* ================= CARGA ================= */
 async function loadAny(){
   for(const url of CANDIDATES){
     try{
-      setStatus("Cargando: " + url);
-      const res = await fetch(url, {cache:"no-store"});
-      if(!res.ok) throw new Error(res.status);
+      const res=await fetch(url,{cache:"no-store"});
+      if(!res.ok) throw 0;
+      const text=await res.text();
+      const wb=XLSX.read(text,{type:"string"});
+      const ws=wb.Sheets[wb.SheetNames[0]];
+      const raw=XLSX.utils.sheet_to_json(ws,{defval:""});
 
-      const text = await res.text();
-      const wb = XLSX.read(text, {type:"string"});
-      const ws = wb.Sheets[wb.SheetNames[0]];
-      const raw = XLSX.utils.sheet_to_json(ws, {defval:""});
-
-      const rows = raw.map(r => ({
-        CODIGO: pick(r, ["CODIGO","ID","SKU"]).toString(),
-        NOMBRE: pick(r, ["NOMBRE","PRODUCTO","ITEM"]).toString(),
-        DETALLE: pick(r, ["DETALLE","DESCRIPCION"]).toString(),
-        MARCA: pick(r, ["MARCA"]).toString(),
-        FAMILIA: pick(r, ["FAMILIA","CATEGORIA"]).toString(),
-        CANTIDAD: Number(pick(r, ["CANTIDAD","QTY"])) || 0,
-        ESTATUS2: pick(r, ["ESTATUS2","BLOQUEO","ESTADO"]).toString(),
+      const rows=raw.map(r=>({
+        CODIGO:pick(r,["CODIGO","ID","SKU"]).toString(),
+        NOMBRE:pick(r,["NOMBRE","PRODUCTO","ITEM"]).toString(),
+        DETALLE:pick(r,["DETALLE","DESCRIPCION"]).toString(),
+        MARCA:pick(r,["MARCA"]).toString(),
+        FAMILIA:pick(r,["FAMILIA","CATEGORIA"]).toString(),
+        CANTIDAD:Number(pick(r,["CANTIDAD","QTY"]))||0,
+        FOTO:pick(r,["FOTO","IMAGEN","URL_FOTO"]).toString(),
+        ESTATUS2:pick(r,["ESTATUS2","ESTADO","BLOQUEO"]).toString(),
       }));
 
       table.replaceData(rows);
       table.setFilter(filtroGlobal);
-
-      setStatus("Carga correcta");
+      updateCounter();
       return;
-
     }catch(e){}
   }
-  setStatus("Error cargando datos");
 }
 
-/* =================== BUSCADOR =================== */
-function applySearch(q){
-  searchValue = (q || "").trim().toLowerCase();
+/* ================= CONTADOR ================= */
+function updateCounter(){
+  document.getElementById("counter").textContent=
+    `Visibles: ${table.getRows(true).length}`;
+}
+
+/* ================= BUSCADOR ================= */
+document.getElementById("q").addEventListener("input",e=>{
+  searchValue=(e.target.value||"").trim().toLowerCase();
   table.setFilter(filtroGlobal);
-}
+  updateCounter();
+});
 
-/* =================== AGRUPACIÓN =================== */
-function applyGrouping(mode){
-  if(mode === "FAMILIA") table.setGroupBy("FAMILIA");
-  else if(mode === "MARCA") table.setGroupBy("MARCA");
-  else table.setGroupBy();
-}
+/* ================= AGRUPACIÓN ================= */
+document.getElementById("groupBy").addEventListener("change",e=>{
+  if(e.target.value==="none") table.setGroupBy();
+  else table.setGroupBy(e.target.value);
+  updateCounter();
+});
 
-/* =================== EVENTOS =================== */
-document.getElementById("q").addEventListener("input", e => applySearch(e.target.value));
-document.getElementById("groupBy").addEventListener("change", e => applyGrouping(e.target.value));
-document.getElementById("reloadBtn").addEventListener("click", loadAny);
+/* ================= EXPORTAR ================= */
+document.getElementById("exportBtn").onclick=()=>{
+  table.download("xlsx","inventario_visibles.xlsx",{
+    sheetName:"Visibles",
+    rowRange:"active"
+  });
+};
 
 loadAny();
 </script>
