@@ -12,123 +12,63 @@
 <style>
 :root{
   --bg:#0b1220; --card:#121a2b; --soft:#1b2741;
-  --text:#e9eefb; --hl:#4fc3f7;
+  --text:#e9eefb; --hl:#ffd54f;
 }
-
-body{
-  margin:0;
-  font-family:system-ui;
-  background:var(--bg);
-  color:var(--text);
-}
-
-.wrap{
-  max-width:1400px;
-  margin:20px auto;
-  padding:0 14px;
-}
-
-.card{
-  background:var(--card);
-  border:1px solid var(--soft);
-  border-radius:16px;
-  padding:14px;
-}
+body{margin:0;font-family:system-ui;background:var(--bg);color:var(--text)}
+.wrap{width:100%;max-width:1800px;margin:16px auto;padding:0 12px}
+.card{background:var(--card);border:1px solid var(--soft);border-radius:16px;padding:16px}
 
 .toolbar{
-  display:flex;
-  flex-wrap:wrap;
-  gap:10px;
-  align-items:center;
-  margin-bottom:10px;
+  display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:10px
 }
-
 .toolbar .field{
-  display:flex;
-  gap:6px;
-  align-items:center;
-  background:var(--soft);
-  border-radius:10px;
-  padding:6px 8px;
+  display:flex;gap:6px;align-items:center;
+  background:var(--soft);border-radius:10px;padding:6px 8px
 }
-
-.toolbar input,
-.toolbar select{
-  background:transparent;
-  border:none;
-  outline:none;
-  color:var(--text);
+.toolbar input,.toolbar select{
+  background:transparent;border:none;outline:none;color:var(--text)
 }
-
 .btn{
-  background:#2a7ef0;
-  color:white;
-  border:none;
-  border-radius:10px;
-  padding:8px 12px;
-  font-weight:600;
-  cursor:pointer;
+  background:#2a7ef0;color:white;border:none;
+  border-radius:10px;padding:6px 12px;font-weight:600;cursor:pointer
 }
+.counter{margin-left:auto;font-weight:600}
 
-.counter{
-  margin-left:auto;
-  font-weight:600;
-}
+#table{height:calc(100vh - 220px);min-height:400px}
 
-/* ⬇️ TABLA (MISMA QUE FUNCIONABA) */
-#table{
-  height:600px;
-  border-radius:12px;
-  overflow:hidden;
-}
-
-/* ===== SOLO MEJORAS VISUALES PC ===== */
-
-/* filas un poco más compactas */
+/* ultra compacto */
 .tabulator-row .tabulator-cell{
-  padding:4px 6px;
-  font-size:13px;
-}
-
-/* en PC juntar columnas */
-@media (min-width:769px){
-  .tabulator-cell{
-    padding:4px 6px !important;
-  }
-  .tabulator-col-title{
-    padding:4px 6px !important;
-    font-size:13px;
-  }
-}
-
-/* móvil sin cambios */
-@media (max-width:768px){
-  img{
-    max-width:48px;
-    max-height:48px;
-  }
-}
-
-/* resaltado */
-mark{
-  background:var(--hl);
-  color:#000;
-  border-radius:3px;
-  padding:0 2px;
+  padding:2px 4px !important;
+  font-size:12px;
+  line-height:1.1;
 }
 
 /* stock */
 .stock-0{color:#ff5252;font-weight:700}
 .stock-low{color:#ff9800;font-weight:700}
-.stock-mid{color:#4fc3f7;font-weight:700}
+.stock-mid{color:#ffb300;font-weight:700}
 .stock-high{color:#4caf50;font-weight:700}
+
+/* resaltado */
+mark{
+  background:var(--hl);
+  color:black;
+  border-radius:3px;
+  padding:0 2px;
+}
+
+/* móvil */
+@media (max-width:768px){
+  img{max-width:48px;max-height:48px}
+}
 </style>
 </head>
 
 <body>
 <div class="wrap">
 <div class="card">
-<h3>Inventario</h3>
+
+<h2>Inventario</h2>
 
 <div class="toolbar">
   <div class="field"><input id="q" placeholder="Buscar…"></div>
@@ -141,8 +81,11 @@ mark{
     </select>
   </div>
 
-  <button id="exportBtn" class="btn">Exportar visibles</button>
-  <div class="counter" id="counter">Visibles: 0</div>
+  <button id="toggleExtra" class="btn" style="display:none">Ver Marca / Familia</button>
+  <button id="toggleCards" class="btn" style="display:none">Vista tarjetas</button>
+
+  <button id="exportBtn" class="btn">Exportar</button>
+  <div class="counter" id="counter">0</div>
 </div>
 
 <div id="table"></div>
@@ -153,24 +96,30 @@ mark{
 const SOURCE="https://docs.google.com/spreadsheets/d/e/2PACX-1vTUkpzEC6aZsl0Ur9f3Jwu3NcuZBq2tzrT_weH8QamLt7qsvJMzUKWkZfc-xNX7Pw/pub?output=csv";
 
 let searchValue="";
+let extraVisible=false;
+let cardsMode=false;
+
+/* debounce */
+function debounce(fn, d){
+  let t; return (...a)=>{clearTimeout(t);t=setTimeout(()=>fn(...a),d)};
+}
 
 /* helpers */
 function pick(r,a){
   for(const x of a){
     for(const k of Object.keys(r)){
-      if(k && k.normalize("NFD").replace(/\\p{Diacritic}/gu,"").toUpperCase()
-        === x.normalize("NFD").replace(/\\p{Diacritic}/gu,"").toUpperCase()){
+      if(k && k.normalize("NFD").replace(/\p{Diacritic}/gu,"").toUpperCase()
+        === x.normalize("NFD").replace(/\p{Diacritic}/gu,"").toUpperCase()){
         return r[k];
       }
     }
   }
   return "";
 }
-
-function img(url){
-  if(!url) return "";
-  const m=url.match(/\\/file\\/d\\/([^/]+)\\//);
-  return m?`https://drive.google.com/uc?export=view&id=${m[1]}`:url;
+function img(u){
+  if(!u) return "";
+  const m=u.match(/\/file\/d\/([^/]+)\//);
+  return m?`https://drive.google.com/uc?export=view&id=${m[1]}`:u;
 }
 
 /* filtro */
@@ -178,17 +127,17 @@ function filtro(d){
   if((d.ESTATUS2||"").toUpperCase()==="BLOQUEO") return false;
   if(!searchValue) return true;
   return (
-    d.CODIGO.includes(searchValue)||
-    d.NOMBRE.includes(searchValue)||
-    d.DETALLE.includes(searchValue)||
-    d.MARCA.includes(searchValue)||
-    d.FAMILIA.includes(searchValue)
+    d.CODIGO.toLowerCase().includes(searchValue) ||
+    d.NOMBRE.toLowerCase().includes(searchValue) ||
+    d.DETALLE.toLowerCase().includes(searchValue) ||
+    d.MARCA.toLowerCase().includes(searchValue) ||
+    d.FAMILIA.toLowerCase().includes(searchValue)
   );
 }
 
 /* resaltado */
 function hl(t){
-  if(!searchValue || !t) return t||"";
+  if(!searchValue||!t) return t||"";
   return String(t).replace(new RegExp(searchValue,"gi"),m=>`<mark>${m}</mark>`);
 }
 
@@ -197,40 +146,59 @@ function stockFmt(c){
   const v=c.getValue();
   if(v===0) return `<span class="stock-0">🔴 0</span>`;
   if(v<=5) return `<span class="stock-low">🟠 ${v}</span>`;
-  if(v<=20) return `<span class="stock-mid">🔵 ${v}</span>`;
+  if(v<=20) return `<span class="stock-mid">🟡 ${v}</span>`;
   return `<span class="stock-high">🟢 ${v}</span>`;
 }
 
-/* TABULATOR – CONFIG ORIGINAL */
+/* tabla */
 let table=new Tabulator("#table",{
-  layout:"fitColumns",
+  layout: window.innerWidth > 768 ? "fitDataStretch" : "fitColumns",
+  virtualDom:true,
+  responsiveLayout:"hide",
   placeholder:"Sin datos",
   columns:[
-    {title:"Código",field:"CODIGO",width:100,formatter:c=>hl(c.getValue())},
-    {title:"Nombre",field:"NOMBRE",width:200,formatter:c=>hl(c.getValue())},
-    {title:"Detalle",field:"DETALLE",minWidth:260,formatter:c=>hl(c.getValue())},
-    {title:"Stock",field:"CANTIDAD",width:100,formatter:stockFmt},
+    {title:"Código",field:"CODIGO",width:80,responsive:0,formatter:c=>hl(c.getValue())},
+    {title:"Nombre",field:"NOMBRE",minWidth:140,responsive:0,formatter:c=>hl(c.getValue())},
+    {title:"Detalle",field:"DETALLE",minWidth:200,responsive:0,formatter:c=>hl(c.getValue())},
+    {title:"Stock",field:"CANTIDAD",width:90,responsive:0,formatter:stockFmt},
     {
-      title:"Foto",field:"FOTO",width:90,hozAlign:"center",
+      title:"Foto",field:"FOTO",width:70,responsive:0,hozAlign:"center",
       formatter:c=>{
         const s=img(c.getValue());
         return s?`<img loading="lazy" src="${s}"
-          style="width:46px;height:46px;object-fit:cover;border-radius:6px">`:"";
+          style="width:48px;height:48px;object-fit:cover;border-radius:6px">`:"";
+        @media (min-width:769px){
+  .tabulator-cell{
+    padding:4px 6px !important;
+  }
+
+  .tabulator-col-title{
+    padding:4px 6px !important;
+    font-size:13px;
+  }
+}
       }
     },
-    {title:"Marca",field:"MARCA",width:140},
-    {title:"Familia",field:"FAMILIA",width:160},
+    {title:"Marca", field:"MARCA", responsive:5, visible:false}
+{title:"Familia", field:"FAMILIA", responsive:6, visible:false}
+
   ]
 });
 
 /* contador */
 function updateCounter(){
-  document.getElementById("counter").textContent =
-    `Visibles: ${table.getData("active").length}`;
+  document.getElementById("counter").textContent=table.getData("active").length;
 }
 
-/* carga */
+/* carga con cache */
 async function load(){
+  const cache=localStorage.getItem("inv_cache");
+  if(cache){
+    table.replaceData(JSON.parse(cache));
+    table.setFilter(filtro);
+    updateCounter();
+  }
+
   const r=await fetch(SOURCE,{cache:"no-store"});
   const t=await r.text();
   const wb=XLSX.read(t,{type:"string"});
@@ -238,33 +206,53 @@ async function load(){
   const raw=XLSX.utils.sheet_to_json(ws,{defval:""});
 
   const rows=raw.map(x=>({
-    CODIGO:pick(x,["CODIGO","ID","SKU"]).toLowerCase(),
-    NOMBRE:pick(x,["NOMBRE","PRODUCTO"]).toLowerCase(),
-    DETALLE:pick(x,["DETALLE","DESCRIPCION"]).toLowerCase(),
-    MARCA:pick(x,["MARCA"]).toLowerCase(),
-    FAMILIA:pick(x,["FAMILIA","CATEGORIA"]).toLowerCase(),
+    CODIGO:pick(x,["CODIGO","ID","SKU"]).toString(),
+    NOMBRE:pick(x,["NOMBRE","PRODUCTO"]).toString(),
+    DETALLE:pick(x,["DETALLE","DESCRIPCION"]).toString(),
+    MARCA:pick(x,["MARCA"]).toString(),
+    FAMILIA:pick(x,["FAMILIA","CATEGORIA"]).toString(),
     CANTIDAD:Number(pick(x,["CANTIDAD","QTY"]))||0,
-    FOTO:pick(x,["FOTO","IMAGEN","URL_FOTO"]),
-    ESTATUS2:pick(x,["ESTATUS2","ESTADO","BLOQUEO"])
+    FOTO:pick(x,["FOTO","IMAGEN","URL_FOTO"]).toString(),
+    ESTATUS2:pick(x,["ESTATUS2","ESTADO","BLOQUEO"]).toString()
   }));
 
+  localStorage.setItem("inv_cache",JSON.stringify(rows));
   table.replaceData(rows);
   table.setFilter(filtro);
   updateCounter();
 }
 
 /* eventos */
-document.getElementById("q").oninput=e=>{
+document.getElementById("q").oninput=debounce(e=>{
   searchValue=(e.target.value||"").toLowerCase();
   table.setFilter(filtro);
   updateCounter();
-};
+},250);
+
 document.getElementById("groupBy").onchange=e=>{
-  e.target.value==="none"?table.setGroupBy():table.setGroupBy(e.target.value);
+  if(e.target.value==="none") table.setGroupBy();
+  else table.setGroupBy(e.target.value);
 };
+
 document.getElementById("exportBtn").onclick=()=>{
   table.download("xlsx","inventario_visibles.xlsx",{rowRange:"active"});
 };
+
+document.getElementById("toggleExtra").onclick=()=>{
+  extraVisible=!extraVisible;
+  table.updateColumnDefinition("MARCA",{visible:extraVisible});
+  table.updateColumnDefinition("FAMILIA",{visible:extraVisible});
+};
+
+document.getElementById("toggleCards").onclick=()=>{
+  cardsMode=!cardsMode;
+  table.setOptions({layout:cardsMode?"fitData":"fitColumns"});
+};
+
+if(window.innerWidth<=768){
+  document.getElementById("toggleExtra").style.display="inline-block";
+  document.getElementById("toggleCards").style.display="inline-block";
+}
 
 load();
 </script>
