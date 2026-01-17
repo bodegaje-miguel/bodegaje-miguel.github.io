@@ -152,7 +152,7 @@ function stockFmt(c){
 
 /* tabla */
 let table=new Tabulator("#table",{
-  layout:"fitColumns",
+ layout: window.innerWidth > 768 ? "fitDataStretch" : "fitColumns",
   virtualDom:true,
   responsiveLayout:"hide",
   placeholder:"Sin datos",
