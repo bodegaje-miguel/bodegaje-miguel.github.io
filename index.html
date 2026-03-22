@@ -202,7 +202,7 @@ async function load(){
     FAMILIA:pick(x,["FAMILIA","CATEGORIA"]).toString(),
     stock_producto:Number(pick(x,["stock_producto","QTY"]))||0,
     FOTO:pick(x,["FOTO","IMAGEN","URL_FOTO"]).toString(),
-    ESTATUS:pick(x,["ESTATUS","ESTADO","BLOQUEO"]).toString()
+    estatus:pick(x,["estatus","ESTADO","BLOQUEO"]).toString()
   }));
 
   localStorage.setItem("inv_cache",JSON.stringify(rows));
