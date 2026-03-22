@@ -196,11 +196,11 @@ async function load(){
 
   const rows=raw.map(x=>({
     codigo_producto:pick(x,["codigo_producto","ID","SKU"]).toString(),
-    NOMBRE:pick(x,["nombre_producto","PRODUCTO"]).toString(),
-    DETALLE:pick(x,["detalle_producto","DESCRIPCION"]).toString(),
+    nombre_producto:pick(x,["nombre_producto","PRODUCTO"]).toString(),
+    detalle_producto:pick(x,["detalle_producto","DESCRIPCION"]).toString(),
     MARCA:pick(x,["MARCA"]).toString(),
     FAMILIA:pick(x,["FAMILIA","CATEGORIA"]).toString(),
-    CANTIDAD:Number(pick(x,["stock_producto","QTY"]))||0,
+    stock_producto:Number(pick(x,["stock_producto","QTY"]))||0,
     FOTO:pick(x,["FOTO","IMAGEN","URL_FOTO"]).toString(),
     ESTATUS:pick(x,["ESTATUS","ESTADO","BLOQUEO"]).toString()
   }));
