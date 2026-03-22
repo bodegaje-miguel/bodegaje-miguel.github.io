@@ -195,7 +195,7 @@ async function load(){
   const raw=XLSX.utils.sheet_to_json(ws,{defval:""});
 
   const rows=raw.map(x=>({
-    CODIGO:pick(x,["CODIGO","ID","SKU"]).toString(),
+    codigo_producto:pick(x,["CODIGO","ID","SKU"]).toString(),
     NOMBRE:pick(x,["NOMBRE","PRODUCTO"]).toString(),
     DETALLE:pick(x,["DETALLE","DESCRIPCION"]).toString(),
     MARCA:pick(x,["MARCA"]).toString(),
