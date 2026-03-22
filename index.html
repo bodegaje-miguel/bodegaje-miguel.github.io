@@ -157,10 +157,10 @@ let table=new Tabulator("#table",{
   responsiveLayout:"hide",
   placeholder:"Sin datos",
   columns:[
-    {title:"Código",field:"CODIGO",width:80,responsive:0,formatter:c=>hl(c.getValue())},
-    {title:"Nombre",field:"NOMBRE",minWidth:140,responsive:0,formatter:c=>hl(c.getValue())},
-    {title:"Detalle",field:"DETALLE",minWidth:200,responsive:0,formatter:c=>hl(c.getValue())},
-    {title:"Stock",field:"CANTIDAD",width:90,responsive:0,formatter:stockFmt},
+    {title:"Código",field:"codigo_producto",width:80,responsive:0,formatter:c=>hl(c.getValue())},
+    {title:"Nombre",field:"nombre_producto",minWidth:140,responsive:0,formatter:c=>hl(c.getValue())},
+    {title:"Detalle",field:"detalle_producto",minWidth:200,responsive:0,formatter:c=>hl(c.getValue())},
+    {title:"Stock",field:"stock_producto",width:90,responsive:0,formatter:stockFmt},
     {
       title:"Foto",field:"FOTO",width:70,responsive:0,hozAlign:"center",
       formatter:c=>{
