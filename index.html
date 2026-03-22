@@ -124,12 +124,12 @@ function img(u){
 
 /* filtro */
 function filtro(d){
-  if((d.ESTATUS2||"").toUpperCase()==="BLOQUEO") return false;
+  if((d.estatus||"").toUpperCase()==="BLOQUEO") return false;
   if(!searchValue) return true;
   return (
-    d.CODIGO.toLowerCase().includes(searchValue) ||
-    d.NOMBRE.toLowerCase().includes(searchValue) ||
-    d.DETALLE.toLowerCase().includes(searchValue) ||
+    d.codigo_producto.toLowerCase().includes(searchValue) ||
+    d.nombre_producto.toLowerCase().includes(searchValue) ||
+    d.detalle_producto.toLowerCase().includes(searchValue) ||
     d.MARCA.toLowerCase().includes(searchValue) ||
     d.FAMILIA.toLowerCase().includes(searchValue)
   );
